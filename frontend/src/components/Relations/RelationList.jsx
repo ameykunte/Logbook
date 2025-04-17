@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { fetchRelations, deleteRelation } from '../../services/api';
 import RelationCard from './RelationCard';
 import RelationForm from './RelationForm';
 import InteractionView from '../Interactions/InteractionView';
@@ -7,8 +6,37 @@ import Loader from '../Common/Loader';
 import ErrorAlert from '../Common/ErrorAlert';
 
 const RelationList = ({ filterType }) => {
-  const [relations, setRelations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [relations, setRelations] = useState([
+    {
+      id: 1,
+      name: 'John Doe',
+      relationshipType: 'Friends',
+      city: 'New York',
+      email: 'johndoe@example.com',
+      phoneNumber: '123-456-7890',
+      lastContacted: '2023-04-01',
+    },
+    {
+      id: 2,
+      name: 'Jane Smith',
+      relationshipType: 'Colleague',
+      city: 'San Francisco',
+      email: 'janesmith@example.com',
+      phoneNumber: '987-654-3210',
+      lastContacted: '2023-03-15',
+    },
+    {
+      id: 3,
+      name: 'Alice Johnson',
+      relationshipType: 'Family',
+      city: 'Los Angeles',
+      email: 'alicejohnson@example.com',
+      phoneNumber: '555-123-4567',
+      lastContacted: '2023-02-10',
+    },
+  ]); // Example relations
+  const [filteredRelations, setFilteredRelations] = useState(relations); // Filtered relations
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editRelation, setEditRelation] = useState(null);
@@ -17,19 +45,52 @@ const RelationList = ({ filterType }) => {
 
   const styles = {
     container: {
-      marginBottom: '20px',
-      height: '100%',
       display: 'flex',
-      flexDirection: 'column'
+      height: '100vh',
+      overflow: 'hidden',
     },
-    addButton: {
-      padding: '10px 20px',
-      backgroundColor: '#0D47A1',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      cursor: 'pointer'
+    listView: {
+      flex: showInteractionView ? '0 0 320px' : 1,
+      overflowY: 'auto',
+      padding: '16px',
+      transition: 'flex 0.3s ease',
+      backgroundColor: '#121212',
+    },
+    interactionView: {
+      flex: '1',
+      overflowY: 'auto',
+      backgroundColor: '#1a1a1a',
+      borderLeft: '1px solid #333',
+      transition: 'flex 0.3s ease',
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+      gap: '20px',
+    },
+    addBox: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#1e1e1e',
+      borderRadius: '8px',
+      padding: '16px',
+      cursor: 'pointer',
+      border: '1px dashed #333',
+      color: '#888',
+      textAlign: 'center',
+      height: '180px',
+    },
+    addSymbol: {
+      fontSize: '32px',
+      fontWeight: 'bold',
+      color: '#0D47A1',
+      marginBottom: '8px',
+    },
+    addText: {
+      fontSize: '14px',
+      color: '#aaa',
     },
     modal: {
       position: 'fixed',
@@ -41,7 +102,7 @@ const RelationList = ({ filterType }) => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
+      zIndex: 1000,
     },
     modalContent: {
       backgroundColor: '#1e1e1e',
@@ -49,90 +110,8 @@ const RelationList = ({ filterType }) => {
       width: '100%',
       maxWidth: '600px',
       maxHeight: '90vh',
-      overflow: 'auto'
-    },
-    content: {
-      flex: 1,
-      display: 'flex',
-      height: 'calc(100vh - 120px)'
-    },
-    listView: {
-      flex: showInteractionView ? '0 0 320px' : 1,
       overflow: 'auto',
-      padding: '0 10px',
-      transition: 'flex 0.3s ease'
     },
-    interactionView: {
-      flex: '1',
-      overflow: 'auto',
-      backgroundColor: '#1a1a1a',
-      borderLeft: '1px solid #333',
-      transition: 'flex 0.3s ease'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-      gap: '20px'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '32px',
-      backgroundColor: '#1e1e1e',
-      borderRadius: '8px'
-    },
-    emptyText: {
-      color: '#888'
-    },
-    backButton: {
-      padding: '8px 16px',
-      backgroundColor: 'transparent',
-      color: '#888',
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '10px'
-    }
-  };
-
-  const loadRelations = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchRelations();
-      setRelations(data || []);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to load relations:", err);
-      setError("Network Error: Could not connect to the server. Please check your connection or try again later.");
-      setRelations([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadRelations();
-    
-    // Initialize with example relation on first load
-    if (process.env.NODE_ENV === 'development') {
-      const exampleRelation = mockRelations[0];
-      exampleRelation.interactions = mockInteractions;
-    }
-  }, []);
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this contact?')) {
-      try {
-        await deleteRelation(id);
-        if (selectedRelation && selectedRelation.id === id) {
-          setSelectedRelation(null);
-          setShowInteractionView(false);
-        }
-        loadRelations();
-      } catch (err) {
-        setError("Failed to delete contact. Please try again.");
-      }
-    }
   };
 
   const handleCreate = () => {
@@ -140,14 +119,9 @@ const RelationList = ({ filterType }) => {
     setShowForm(true);
   };
 
-  const handleEdit = (relation) => {
-    setEditRelation(relation);
-    setShowForm(true);
-  };
-
   const handleFormSuccess = () => {
     setShowForm(false);
-    loadRelations();
+    // Add logic to reload relations if needed
   };
 
   const handleRelationClick = (relation) => {
@@ -160,78 +134,61 @@ const RelationList = ({ filterType }) => {
     setSelectedRelation(null);
   };
 
-  // Mock data for development if API fails
-  const useMockData = process.env.NODE_ENV === 'development' && error && !relations.length;
-  
-  const mockRelations = [
-    {
-      id: 1,
-      name: "John Smith",
-      relationshipType: "Work",
-      city: "San Francisco",
-      email: "john@example.com",
-      phoneNumber: "555-123-4567",
-      lastContacted: new Date().toISOString()
-    },
-    {
-      id: 2,
-      name: "Jane Doe",
-      relationshipType: "Friends",
-      city: "New York",
-      email: "jane@example.com",
-      phoneNumber: "555-987-6543",
-      lastContacted: new Date().toISOString()
+  // Filter relations based on the selected type
+  useEffect(() => {
+    if (filterType) {
+      setFilteredRelations(
+        relations.filter((relation) =>
+          filterType === 'Others'
+            ? !['Friends', 'Family', 'Work'].includes(relation.relationshipType)
+            : relation.relationshipType === filterType
+        )
+      );
+    } else {
+      setFilteredRelations(relations); // Show all relations if no filter is selected
     }
-  ];
-
-  const mockInteractions = [
-    {
-      id: 1,
-      date: "2025-04-15T14:30:00Z",
-      summary: "Had a productive meeting about the new design system. John provided valuable feedback on the color palette and typography. He suggested we focus more on accessibility and provided some resources to review. We agreed to reconvene next week to finalize the design decisions.",
-      type: "meeting"
-    },
-    {
-      id: 2,
-      date: "2025-04-10T09:15:00Z",
-      summary: "Discussed the upcoming product launch. John shared insights about market positioning and competitive analysis. He's concerned about the timeline but confident in the team's capabilities.",
-      type: "call"
-    },
-    {
-      id: 3,
-      date: "2025-04-03T11:00:00Z",
-      summary: "John sent over the quarterly business review. Key points: revenue up 12% YoY, customer acquisition cost down 8%, retention rates stable at 94%. Areas to improve: onboarding flow and mobile experience.",
-      type: "document"
-    }
-  ];
-
-  // Apply filter if provided
-  const displayedRelations = useMockData 
-    ? (filterType ? mockRelations.filter(r => r.relationshipType === filterType) : mockRelations)
-    : (filterType ? relations.filter(r => r.relationshipType === filterType) : relations);
+  }, [filterType, relations]);
 
   return (
     <div style={styles.container}>
-      {loading ? (
-        <Loader />
-      ) : error ? (
-        <>
+      <div style={styles.listView}>
+        {loading ? (
+          <Loader />
+        ) : error ? (
           <ErrorAlert message={error} />
-          {useMockData && (
-            <div style={{marginTop: '20px'}}>
-              <p style={{color: '#aaa', marginBottom: '10px'}}>Showing mock data for development purposes:</p>
+        ) : (
+          <div style={styles.grid}>
+            {/* Add New Contact Box */}
+            <div style={styles.addBox} onClick={handleCreate}>
+              <div style={styles.addSymbol}>+</div>
+              <div style={styles.addText}>Add New Contact</div>
             </div>
-          )}
-        </>
-      ) : null}
-      
-      <button 
-        onClick={handleCreate} 
-        style={styles.addButton}
-      >
-        Add New Contact
-      </button>
-      
+
+            {/* Filtered Relation Cards */}
+            {filteredRelations.map((relation) => (
+              <RelationCard
+                key={relation.id}
+                relation={relation}
+                onEdit={() => setEditRelation(relation)}
+                onDelete={() => console.log('Delete relation', relation.id)}
+                onClick={() => handleRelationClick(relation)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Interaction View */}
+      {showInteractionView && selectedRelation && (
+        <div style={styles.interactionView}>
+          <InteractionView
+            relation={selectedRelation}
+            onClose={closeInteractionView}
+          />
+        </div>
+      )}
+
+      {/* Modal for Adding/Editing Relation */}
       {showForm && (
         <div style={styles.modal}>
           <div style={styles.modalContent}>
@@ -243,38 +200,6 @@ const RelationList = ({ filterType }) => {
           </div>
         </div>
       )}
-      
-      <div style={styles.content}>
-        <div style={styles.listView}>
-          {displayedRelations.length === 0 ? (
-            <div style={styles.emptyState}>
-              <p style={styles.emptyText}>No contacts available. Add your first contact to get started!</p>
-            </div>
-          ) : (
-            <div style={styles.grid}>
-              {displayedRelations.map((r) => (
-                <RelationCard
-                  key={r.id}
-                  relation={r}
-                  onEdit={() => handleEdit(r)}
-                  onDelete={() => handleDelete(r.id)}
-                  onClick={() => handleRelationClick(r)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        
-        {showInteractionView && selectedRelation && (
-          <div style={styles.interactionView}>
-            <InteractionView 
-              relation={selectedRelation} 
-              onClose={closeInteractionView}
-              onUpdate={loadRelations}
-            />
-          </div>
-        )}
-      </div>
     </div>
   );
 };
