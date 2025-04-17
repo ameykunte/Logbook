@@ -7,9 +7,9 @@ load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 from services.llm import generate_response
 from services.connect_db import supabase
-from services.embedding import get_embedding
+from services.embeddings import get_embedding
 
-router = APIRouter()
+search_router = APIRouter()
 
 class SearchRequest(BaseModel):
     query: str
@@ -17,7 +17,7 @@ class SearchRequest(BaseModel):
     threshold: float = 0.3
     match_count: int = 10
 
-@router.post("/search")
+@search_router.post("/search")
 async def hybrid_search(request: SearchRequest):
     try:
         print(f"[DEBUG] Received search request: {request.dict()}")
