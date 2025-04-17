@@ -1,6 +1,21 @@
 import React from 'react';
 
 const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
+    const getTypeBackgroundColor = (type) => {
+    switch (type) {
+      case 'Friends':
+        return '#4CAF50'; // Green for Friends
+      case 'Family':
+        return '#2196F3'; // Blue for Family
+      case 'Work':
+        return '#FFC107'; // Yellow for Work
+      case 'Others':
+        return '#9C27B0'; // Purple for Others
+      default:
+        return '#757575'; // Grey for unknown types
+    }
+  };
+
   const styles = {
     card: {
       backgroundColor: '#1e1e1e',
@@ -9,45 +24,50 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
       cursor: 'pointer',
       transition: 'all 0.2s ease',
       border: '1px solid #333',
-      position: 'relative'
+      position: 'relative',
     },
     cardHover: {
       transform: 'translateY(-3px)',
-      boxShadow: '0 5px 15px rgba(0, 0, 0, 0.2)'
+      boxShadow: '0 5px 15px rgba(0, 0, 0, 0.2)',
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '8px',
     },
     name: {
       fontSize: '18px',
       fontWeight: 'bold',
-      marginBottom: '8px',
-      color: '#fff'
+      color: '#fff',
+      marginBottom: '10px',
     },
     type: {
       display: 'inline-block',
-      backgroundColor: '#0D47A1',
+      backgroundColor: getTypeBackgroundColor(relation.relationshipType), // Dynamic background color
       color: 'white',
       padding: '4px 8px',
       borderRadius: '4px',
       fontSize: '12px',
-      marginBottom: '12px'
     },
     detail: {
       marginBottom: '6px',
       color: '#bbb',
-      fontSize: '14px'
+      fontSize: '14px',
+    },
+    lastContactContainer: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: '16px',
     },
     lastContact: {
       fontSize: '12px',
       color: '#888',
-      marginTop: '16px'
     },
     actions: {
-      position: 'absolute',
-      top: '10px',
-      right: '10px',
       display: 'flex',
       gap: '8px',
-      opacity: 0,
-      transition: 'opacity 0.2s ease'
     },
     actionButton: {
       backgroundColor: 'transparent',
@@ -58,72 +78,67 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
       borderRadius: '50%',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
     },
-    container: {
-      position: 'relative',
-      '&:hover .actions': {
-        opacity: 1
-      }
-    }
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
-  const [hover, setHover] = React.useState(false);
-
   return (
-    <div 
-      style={{position: 'relative'}}
-      onMouseEnter={() => {
-        setHover(true);
-      }}
-      onMouseLeave={() => {
-        setHover(false);
-      }}
+    <div
+      style={{ ...styles.card }}
+      onClick={onClick}
     >
-      <div 
-        style={{...styles.card, ...(hover ? styles.cardHover : {})}}
-        onClick={onClick}
-      >
+      {/* Header with Name and Type */}
+      <div style={styles.header}>
         <h3 style={styles.name}>{relation.name}</h3>
         <span style={styles.type}>{relation.relationshipType}</span>
-        <p style={styles.detail}>📍 {relation.city || 'No location'}</p>
-        <p style={styles.detail}>📧 {relation.email || 'No email'}</p>
-        <p style={styles.detail}>📱 {relation.phoneNumber || 'No phone'}</p>
-        <p style={styles.lastContact}>
-          Last contacted: {relation.lastContacted ? formatDate(relation.lastContacted) : 'Never'}
-        </p>
       </div>
-      
-      <div style={{...styles.actions, opacity: hover ? 1 : 0}}>
-        <button 
-          style={styles.actionButton} 
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          title="Edit"
-        >
-          <span role="img" aria-label="edit">✏️</span>
-        </button>
-        <button 
-          style={styles.actionButton} 
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Delete"
-        >
-          <span role="img" aria-label="delete">🗑️</span>
-        </button>
+
+      {/* Details */}
+      <p style={styles.detail}>📍 {relation.city || 'No location'}</p>
+      <p style={styles.detail}>📧 {relation.email || 'No email'}</p>
+      <p style={styles.detail}>📱 {relation.phoneNumber || 'No phone'}</p>
+
+      {/* Last Contacted and Actions */}
+      <div style={styles.lastContactContainer}>
+        <p style={styles.lastContact}>
+          Last contacted:{' '}
+          {relation.lastContacted ? formatDate(relation.lastContacted) : 'Never'}
+        </p>
+        <div style={styles.actions}>
+          <button
+            style={styles.actionButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            title="Edit"
+          >
+            <span role="img" aria-label="edit">
+              ✏️
+            </span>
+          </button>
+          <button
+            style={styles.actionButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            title="Delete"
+          >
+            <span role="img" aria-label="delete">
+              🗑️
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

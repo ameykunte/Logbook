@@ -14,6 +14,8 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
   const styles = {
     container: {
       height: '100%',
+      width: '100%',
+      backgroundColor: '#121212',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden'
@@ -387,7 +389,7 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
               </div>
             ))}
           </div>
-        )}
+        )}  
       </div>
     </div>
   );
