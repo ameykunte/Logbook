@@ -1,36 +1,57 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
-import './LoginPage.css';
+import './SignUpPage.css';
 
-const LoginPage = () => {
-  const { login } = useContext(AuthContext);
+const SignUpPage = () => {
+  const { login } = useContext(AuthContext); // Use login from AuthContext to set token after signup
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [userName, setUserName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
+      // Call the signup API
+      const response = await axios.post('/auth/signup', {
+        email,
+        password,
+        user_name: userName,
+      });
+
+      // Automatically log in the user after signup
       await login({ email, password });
-      navigate('/home'); // Redirect to HomePage after successful login
+
+      // Redirect to the home page
+      navigate('/home');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Sign Up failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleLogin}>
-        <h2>Login</h2>
+    <div className="signup-container">
+      <form className="signup-form" onSubmit={handleSignUp}>
+        <h2>Sign Up</h2>
         {error && <p className="error">{error}</p>}
+        <div className="form-group">
+          <label>User Name</label>
+          <input
+            type="text"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            required
+          />
+        </div>
         <div className="form-group">
           <label>Email</label>
           <input
@@ -50,12 +71,12 @@ const LoginPage = () => {
           />
         </div>
         <button type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? 'Signing Up...' : 'Sign Up'}
         </button>
         <p className="switch-auth">
-          New User?{' '}
-          <span onClick={() => navigate('/signup')} className="auth-link">
-            Sign Up here
+          Already a user?{' '}
+          <span onClick={() => navigate('/login')} className="auth-link">
+            Login here
           </span>
         </p>
       </form>
@@ -63,4 +84,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SignUpPage;

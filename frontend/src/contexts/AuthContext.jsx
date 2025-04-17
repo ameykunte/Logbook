@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { login as apiLogin } from '../services/api';
+import axios from '../services/api';
 
 export const AuthContext = createContext({});
 
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const data = await apiLogin(credentials);
+      const { data } = await axios.post('/auth/login', credentials);
       if (data.token) {
         setToken(data.token);
       }
