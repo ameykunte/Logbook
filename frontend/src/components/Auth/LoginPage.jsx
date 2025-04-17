@@ -18,7 +18,7 @@ const LoginPage = () => {
 
     try {
       await login({ email, password });
-      navigate('/home'); // Redirect to HomePage after successful login
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {
@@ -27,34 +27,47 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleLogin}>
-        <h2>Login</h2>
-        {error && <p className="error">{error}</p>}
-        <div className="form-group">
+    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>
+      <form onSubmit={handleLogin}>
+        <h2 style={{ textAlign: 'center' }}>Login</h2>
+        {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+
+        <div style={{ marginBottom: '1rem' }}>
           <label>Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
-        <div className="form-group">
+
+        <div style={{ marginBottom: '1rem' }}>
           <label>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
-        <button type="submit" disabled={loading}>
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ width: '100%', padding: '0.5rem' }}
+        >
           {loading ? 'Logging in...' : 'Login'}
         </button>
-        <p className="switch-auth">
+
+        <p style={{ marginTop: '1rem', textAlign: 'center' }}>
           New User?{' '}
-          <span onClick={() => navigate('/signup')} className="auth-link">
+          <span
+            onClick={() => navigate('/signup')}
+            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+          >
             Sign Up here
           </span>
         </p>

@@ -15,6 +15,9 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
     likes: '',
     dislikes: ''
   });
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -40,61 +43,177 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isEdit) {
-      await updateRelation(relation.id, formData);
-    } else {
-      await createRelation(formData);
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      if (isEdit) {
+        await updateRelation(relation.id, formData);
+      } else {
+        await createRelation(formData);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    onSuccess();
   };
 
+  const relationshipTypes = ['Work', 'Family', 'Friends', 'Others'];
+
   return (
-    <form onSubmit={handleSubmit} style={{ border: '1px solid #ddd', padding: '1rem', marginBottom: '1rem' }}>
-      <h3>{isEdit ? 'Edit Contact' : 'New Contact'}</h3>
-      <div>
-        <label>Name</label>
-        <input name="name" value={formData.name} onChange={handleChange} required />
+    <form onSubmit={handleSubmit} className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold text-gray-100">{isEdit ? 'Edit Contact' : 'New Contact'}</h3>
+        <button 
+          type="button" 
+          onClick={onCancel}
+          className="text-gray-400 hover:text-gray-200"
+        >
+          ✕
+        </button>
       </div>
-      <div>
-        <label>Type</label>
-        <input name="relationshipType" value={formData.relationshipType} onChange={handleChange} required />
+      
+      {error && (
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Name*</label>
+          <input 
+            name="name" 
+            value={formData.name} 
+            onChange={handleChange} 
+            required
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Type*</label>
+          <select
+            name="relationshipType"
+            value={formData.relationshipType}
+            onChange={handleChange}
+            required
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+          >
+            <option value="">Select a type</option>
+            {relationshipTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">City</label>
+          <input 
+            name="city" 
+            value={formData.city} 
+            onChange={handleChange}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+            <input 
+              type="email" 
+              name="email" 
+              value={formData.email} 
+              onChange={handleChange}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
+            <input 
+              name="phoneNumber" 
+              value={formData.phoneNumber} 
+              onChange={handleChange}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">LinkedIn</label>
+            <input 
+              name="linkedin" 
+              value={formData.linkedin} 
+              onChange={handleChange}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Instagram</label>
+            <input 
+              name="instagram" 
+              value={formData.instagram} 
+              onChange={handleChange}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Snapchat</label>
+          <input 
+            name="snapchat" 
+            value={formData.snapchat} 
+            onChange={handleChange}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Likes</label>
+          <textarea
+            name="likes"
+            value={formData.likes}
+            onChange={handleChange}
+            rows={2}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Dislikes</label>
+          <textarea
+            name="dislikes"
+            value={formData.dislikes}
+            onChange={handleChange}
+            rows={2}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
-      <div>
-        <label>City</label>
-        <input name="city" value={formData.city} onChange={handleChange} />
+      
+      <div className="mt-6 flex space-x-3">
+        <button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Create Contact'}
+        </button>
+        <button 
+          type="button" 
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="py-2 px-4 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md transition-colors"
+        >
+          Cancel
+        </button>
       </div>
-      <div>
-        <label>LinkedIn</label>
-        <input name="linkedin" value={formData.linkedin} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Instagram</label>
-        <input name="instagram" value={formData.instagram} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Email</label>
-        <input type="email" name="email" value={formData.email} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Snapchat</label>
-        <input name="snapchat" value={formData.snapchat} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Phone Number</label>
-        <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Likes</label>
-        <input name="likes" value={formData.likes} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Dislikes</label>
-        <input name="dislikes" value={formData.dislikes} onChange={handleChange} />
-      </div>
-      <button type="submit" style={{ marginRight: '0.5rem' }}>
-        {isEdit ? 'Update' : 'Create'}
-      </button>
-      <button type="button" onClick={onCancel}>Cancel</button>
     </form>
   );
 };

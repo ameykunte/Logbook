@@ -2,9 +2,9 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './components/Auth/LoginPage';
 import PrivateRoute from './components/Auth/PrivateRoute';
-import HomePage from './components/Layout/HomePage';
 import HelloMessage from './components/Hello/HelloMessage';
 import SignUpPage from './components/Auth/SignUpPage';
+import Dashboard from './components/Layout/Dashboard';
 
 function App() {
   return (
@@ -12,10 +12,10 @@ function App() {
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
-        path="/home"
+        path="/dashboard"
         element={
           <PrivateRoute>
-            <HomePage />
+            <Dashboard />
           </PrivateRoute>
         }
       />

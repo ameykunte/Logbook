@@ -2,10 +2,9 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
-import './SignUpPage.css';
 
 const SignUpPage = () => {
-  const { login } = useContext(AuthContext); // Use login from AuthContext to set token after signup
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [userName, setUserName] = useState('');
@@ -19,18 +18,14 @@ const SignUpPage = () => {
     setError('');
 
     try {
-      // Call the signup API
-      const response = await axios.post('/auth/signup', {
+      await axios.post('/auth/signup', {
         email,
         password,
         user_name: userName,
       });
 
-      // Automatically log in the user after signup
       await login({ email, password });
-
-      // Redirect to the home page
-      navigate('/home');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Sign Up failed');
     } finally {
@@ -39,43 +34,58 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="signup-container">
-      <form className="signup-form" onSubmit={handleSignUp}>
-        <h2>Sign Up</h2>
-        {error && <p className="error">{error}</p>}
-        <div className="form-group">
+    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>
+      <form onSubmit={handleSignUp}>
+        <h2 style={{ textAlign: 'center' }}>Sign Up</h2>
+        {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+
+        <div style={{ marginBottom: '1rem' }}>
           <label>User Name</label>
           <input
             type="text"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             required
+            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
-        <div className="form-group">
+
+        <div style={{ marginBottom: '1rem' }}>
           <label>Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
-        <div className="form-group">
+
+        <div style={{ marginBottom: '1rem' }}>
           <label>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
-        <button type="submit" disabled={loading}>
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ width: '100%', padding: '0.5rem' }}
+        >
           {loading ? 'Signing Up...' : 'Sign Up'}
         </button>
-        <p className="switch-auth">
+
+        <p style={{ marginTop: '1rem', textAlign: 'center' }}>
           Already a user?{' '}
-          <span onClick={() => navigate('/login')} className="auth-link">
+          <span
+            onClick={() => navigate('/login')}
+            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
+          >
             Login here
           </span>
         </p>
