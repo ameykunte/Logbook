@@ -20,57 +20,51 @@ const LoginPage = () => {
       await login({ email, password });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.detail || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>
-      <form onSubmit={handleLogin}>
-        <h2 style={{ textAlign: 'center' }}>Login</h2>
-        {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+    <div className="login-container">
+      <form className="login-form" onSubmit={handleLogin}>
+        <h2>Login</h2>
+        {error && <div className="error">{error}</div>}
 
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="form-group">
           <label>Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
 
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="form-group">
           <label>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: '100%', padding: '0.5rem' }}
-        >
+        <button type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
 
-        <p style={{ marginTop: '1rem', textAlign: 'center' }}>
+        <div className="switch-auth">
           New User?{' '}
           <span
+            className="auth-link"
             onClick={() => navigate('/signup')}
-            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
           >
             Sign Up here
           </span>
-        </p>
+        </div>
       </form>
     </div>
   );

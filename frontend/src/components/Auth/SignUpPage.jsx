@@ -1,94 +1,94 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../../services/api';
 import { AuthContext } from '../../contexts/AuthContext';
+import './SignUpPage.css';
 
 const SignUpPage = () => {
-  const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [userName, setUserName] = useState('');
+  const { signup } = useContext(AuthContext);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: ''
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignUp = async (e) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      await axios.post('/auth/signup', {
-        email,
-        password,
-        user_name: userName,
-      });
-
-      await login({ email, password });
+      await signup(formData);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Sign Up failed');
+      setError(err.response?.data?.detail || 'Signup failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>
-      <form onSubmit={handleSignUp}>
-        <h2 style={{ textAlign: 'center' }}>Sign Up</h2>
-        {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+    <div className="signup-container">
+      <form className="signup-form" onSubmit={handleSubmit}>
+        <h2>Sign Up</h2>
+        {error && <div className="error">{error}</div>}
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label>User Name</label>
+        <div className="form-group">
+          <label>Name</label>
           <input
             type="text"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
             required
-            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
 
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="form-group">
           <label>Email</label>
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
             required
-            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
 
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="form-group">
           <label>Password</label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
             required
-            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: '100%', padding: '0.5rem' }}
-        >
-          {loading ? 'Signing Up...' : 'Sign Up'}
+        <button type="submit" disabled={loading}>
+          {loading ? 'Signing up...' : 'Sign Up'}
         </button>
 
-        <p style={{ marginTop: '1rem', textAlign: 'center' }}>
-          Already a user?{' '}
+        <div className="switch-auth">
+          Already have an account?{' '}
           <span
+            className="auth-link"
             onClick={() => navigate('/login')}
-            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
           >
             Login here
           </span>
-        </p>
+        </div>
       </form>
     </div>
   );

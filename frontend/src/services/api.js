@@ -6,9 +6,9 @@ const api = axios.create({
 
 // Attach token to each request
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const access_token = localStorage.getItem('access_token');
+  if (access_token) {
+    config.headers.Authorization = `Bearer ${access_token}`;
   }
   return config;
 });
@@ -16,6 +16,7 @@ api.interceptors.request.use(config => {
 // Auth
 export const login = async (credentials) => {
   const { data } = await api.post('/auth/login', credentials);
+  localStorage.setItem('access_token', data.access_token); // Save access_token
   return data;
 };
 
