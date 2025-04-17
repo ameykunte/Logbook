@@ -1,4 +1,3 @@
-# filepath: /Users/vamseedharvanarasi/vamsee_IIITH/Three_2/SE/Projects/Project-3/backend/app_config.py
 from supabase import create_client
 import os
 from dotenv import load_dotenv

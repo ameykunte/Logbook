@@ -1,8 +1,9 @@
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.api import api_router
 from routes.relationship import relationship_router
 from routes.auth import auth_router
+from fastapi import FastAPI, Request, Depends
+import os
 from routes.search import search_router
 
 app = FastAPI()
