@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
 });
 
 // Attach token to each request
@@ -58,6 +58,11 @@ export const updateInteraction = async (id, interaction) => {
 
 export const deleteInteraction = async (id) => {
   const { data } = await api.delete(`/interactions/${id}`);
+  return data;
+};
+
+export const fetchHelloMessage = async () => {
+  const { data } = await api.get('/hello');
   return data;
 };
 
