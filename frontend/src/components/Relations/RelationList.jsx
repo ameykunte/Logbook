@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchRelations, deleteRelation } from '../../services/api';
 import RelationCard from './RelationCard';
 import RelationForm from './RelationForm';
+import InteractionView from '../Interactions/InteractionView';
 import Loader from '../Common/Loader';
 import ErrorAlert from '../Common/ErrorAlert';
 
@@ -11,10 +12,15 @@ const RelationList = ({ filterType }) => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editRelation, setEditRelation] = useState(null);
+  const [selectedRelation, setSelectedRelation] = useState(null);
+  const [showInteractionView, setShowInteractionView] = useState(false);
 
   const styles = {
     container: {
-      marginBottom: '20px'
+      marginBottom: '20px',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
     },
     addButton: {
       padding: '10px 20px',
@@ -45,6 +51,24 @@ const RelationList = ({ filterType }) => {
       maxHeight: '90vh',
       overflow: 'auto'
     },
+    content: {
+      flex: 1,
+      display: 'flex',
+      height: 'calc(100vh - 120px)'
+    },
+    listView: {
+      flex: showInteractionView ? '0 0 320px' : 1,
+      overflow: 'auto',
+      padding: '0 10px',
+      transition: 'flex 0.3s ease'
+    },
+    interactionView: {
+      flex: '1',
+      overflow: 'auto',
+      backgroundColor: '#1a1a1a',
+      borderLeft: '1px solid #333',
+      transition: 'flex 0.3s ease'
+    },
     grid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -58,6 +82,16 @@ const RelationList = ({ filterType }) => {
     },
     emptyText: {
       color: '#888'
+    },
+    backButton: {
+      padding: '8px 16px',
+      backgroundColor: 'transparent',
+      color: '#888',
+      border: 'none',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '10px'
     }
   };
 
@@ -78,12 +112,22 @@ const RelationList = ({ filterType }) => {
 
   useEffect(() => {
     loadRelations();
+    
+    // Initialize with example relation on first load
+    if (process.env.NODE_ENV === 'development') {
+      const exampleRelation = mockRelations[0];
+      exampleRelation.interactions = mockInteractions;
+    }
   }, []);
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
       try {
         await deleteRelation(id);
+        if (selectedRelation && selectedRelation.id === id) {
+          setSelectedRelation(null);
+          setShowInteractionView(false);
+        }
         loadRelations();
       } catch (err) {
         setError("Failed to delete contact. Please try again.");
@@ -104,6 +148,16 @@ const RelationList = ({ filterType }) => {
   const handleFormSuccess = () => {
     setShowForm(false);
     loadRelations();
+  };
+
+  const handleRelationClick = (relation) => {
+    setSelectedRelation(relation);
+    setShowInteractionView(true);
+  };
+
+  const closeInteractionView = () => {
+    setShowInteractionView(false);
+    setSelectedRelation(null);
   };
 
   // Mock data for development if API fails
@@ -127,6 +181,27 @@ const RelationList = ({ filterType }) => {
       email: "jane@example.com",
       phoneNumber: "555-987-6543",
       lastContacted: new Date().toISOString()
+    }
+  ];
+
+  const mockInteractions = [
+    {
+      id: 1,
+      date: "2025-04-15T14:30:00Z",
+      summary: "Had a productive meeting about the new design system. John provided valuable feedback on the color palette and typography. He suggested we focus more on accessibility and provided some resources to review. We agreed to reconvene next week to finalize the design decisions.",
+      type: "meeting"
+    },
+    {
+      id: 2,
+      date: "2025-04-10T09:15:00Z",
+      summary: "Discussed the upcoming product launch. John shared insights about market positioning and competitive analysis. He's concerned about the timeline but confident in the team's capabilities.",
+      type: "call"
+    },
+    {
+      id: 3,
+      date: "2025-04-03T11:00:00Z",
+      summary: "John sent over the quarterly business review. Key points: revenue up 12% YoY, customer acquisition cost down 8%, retention rates stable at 94%. Areas to improve: onboarding flow and mobile experience.",
+      type: "document"
     }
   ];
 
@@ -169,22 +244,37 @@ const RelationList = ({ filterType }) => {
         </div>
       )}
       
-      {displayedRelations.length === 0 ? (
-        <div style={styles.emptyState}>
-          <p style={styles.emptyText}>No contacts available. Add your first contact to get started!</p>
+      <div style={styles.content}>
+        <div style={styles.listView}>
+          {displayedRelations.length === 0 ? (
+            <div style={styles.emptyState}>
+              <p style={styles.emptyText}>No contacts available. Add your first contact to get started!</p>
+            </div>
+          ) : (
+            <div style={styles.grid}>
+              {displayedRelations.map((r) => (
+                <RelationCard
+                  key={r.id}
+                  relation={r}
+                  onEdit={() => handleEdit(r)}
+                  onDelete={() => handleDelete(r.id)}
+                  onClick={() => handleRelationClick(r)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div style={styles.grid}>
-          {displayedRelations.map((r) => (
-            <RelationCard
-              key={r.id}
-              relation={r}
-              onEdit={() => handleEdit(r)}
-              onDelete={() => handleDelete(r.id)}
+        
+        {showInteractionView && selectedRelation && (
+          <div style={styles.interactionView}>
+            <InteractionView 
+              relation={selectedRelation} 
+              onClose={closeInteractionView}
+              onUpdate={loadRelations}
             />
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
