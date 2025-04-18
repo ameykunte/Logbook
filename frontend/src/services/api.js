@@ -105,14 +105,5 @@ export const deleteInteraction = async (id) => {
   }
 };
 
-export const fetchHelloMessage = async () => {
-  try {
-    const { data } = await api.get('/hello');
-    return data;
-  } catch (error) {
-    console.error('Error fetching hello message:', error);
-    throw error;
-  }
-};
 
 export default api;
