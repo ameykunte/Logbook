@@ -38,7 +38,9 @@ class GoogleCalendarService:
             redirect_uri=self.client_config["web"]["redirect_uris"][0]
         )
         auth_url, _ = flow.authorization_url(
+            # Force to always get refresh token
             access_type='offline',
+            prompt='consent',  # Add this to force consent screen
             state=user_id,
             include_granted_scopes='true'
         )
@@ -70,6 +72,50 @@ class GoogleCalendarService:
         return creds_dict
 
     def create_event(self, credentials_json: dict, event_details: dict):
-        credentials = Credentials.from_authorized_user_info(credentials_json, self.scopes)
-        service = build('calendar', 'v3', credentials=credentials)
-        return service.events().insert(calendarId='primary', body=event_details).execute()
+        """Create a calendar event with proper credential handling and debug logging"""
+        try:
+            print(f"[DEBUG] Creating event with credentials: {credentials_json}")
+            print(f"[DEBUG] Event details: {event_details}")
+            
+            # Validate credentials contain required fields
+            required_fields = ['refresh_token', 'token_uri', 'client_id', 'client_secret']
+            missing_fields = [field for field in required_fields if not credentials_json.get(field)]
+            
+            if missing_fields:
+                print(f"[DEBUG] Missing credential fields: {missing_fields}")
+                raise ValueError(f"Missing required credential fields: {missing_fields}")
+
+            # Create credentials object
+            credentials = Credentials.from_authorized_user_info(
+                credentials_json, 
+                self.scopes
+            )
+
+            # Check if credentials need refresh
+            if not credentials.valid:
+                print("[DEBUG] Credentials expired, attempting refresh")
+                if credentials.refresh_token:
+                    credentials.refresh(Request())
+                    print("[DEBUG] Credentials refreshed successfully")
+                else:
+                    raise ValueError("No refresh token available")
+
+            # Build service and create event
+            print("[DEBUG] Building calendar service")
+            service = build('calendar', 'v3', credentials=credentials)
+            
+            print("[DEBUG] Inserting event")
+            result = service.events().insert(calendarId='primary', body=event_details).execute()
+            print(f"[DEBUG] Event created successfully: {result.get('id')}")
+            
+            return result
+
+        except ValueError as ve:
+            print(f"[DEBUG] Validation error: {str(ve)}")
+            raise
+        except Exception as e:
+            print(f"[DEBUG] Calendar API error: {str(e)}")
+            print(f"[DEBUG] Error type: {type(e)}")
+            import traceback
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
+            raise

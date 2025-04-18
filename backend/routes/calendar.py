@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Body
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -15,6 +15,7 @@ load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 from services.google_calendar import GoogleCalendarService
 from services.connect_db import supabase
+from services.event_extractor import extract_events_from_interaction
 
 from routes.auth import verify_jwt_token
 from routes.auth import get_google_credentials
@@ -161,3 +162,114 @@ async def google_oauth_callback(
     except Exception as e:
         print("[Debug] Error in OAuth callback:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+@calendar_router.post("/extract-events")
+async def extract_events(
+    request: Request,
+    google_credentials: dict = Depends(get_google_credentials),
+    token: dict = Depends(verify_jwt_token)
+) -> Dict[str, List[Any]]:
+    """Extract potential events from interaction text"""
+    try:
+        body = await request.json()
+        interaction_text = body.get("interaction_text")
+        relationship_id = body.get("relationship_id")
+        interaction_date = body.get("interaction_date")
+        
+        print(f"[DEBUG] Raw interaction date received: {interaction_date}")
+        print(f"[DEBUG] Date type: {type(interaction_date)}")
+        
+        # Try to parse the date if it's a string
+        if isinstance(interaction_date, str):
+            try:
+                parsed_date = datetime.fromisoformat(interaction_date.replace('Z', ''))
+                print(f"[DEBUG] Parsed interaction date: {parsed_date}")
+            except ValueError as e:
+                print(f"[DEBUG] Date parsing error: {e}")
+        
+        if not interaction_text:
+            raise HTTPException(status_code=400, detail="interaction_text is required")
+        if not relationship_id:
+            raise HTTPException(status_code=400, detail="relationship_id is required")
+            
+        print(f"[DEBUG] Received text for extraction: {interaction_text}")
+        print(f"[DEBUG] Relation ID: {relationship_id}")
+        print(f"[DEBUG] Interaction date: {interaction_date}")
+        
+        # Get relation information from database
+        relation_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).single().execute()
+        if not relation_response.data:
+            raise HTTPException(status_code=404, detail="Relation not found")
+        
+        relation_info = {
+            "name": relation_response.data.get("name"),
+            "email": relation_response.data.get("email_address"),
+            "company": relation_response.data.get("category_type"),
+            "interaction_date": interaction_date
+        }
+        
+        print(f"[DEBUG] Relation info with date: {relation_info}")
+        
+        events = await extract_events_from_interaction(interaction_text, relation_info)
+        print(f"[DEBUG] Extracted events: {events}")
+        
+        if not events:
+            return {"events": []}
+            
+        return {"events": [event.dict() for event in events]}
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    except Exception as e:
+        print(f"[DEBUG] Error in extract_events: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@calendar_router.post("/add-extracted-event")
+async def add_extracted_event(
+    event: dict = Body(...),
+    google_credentials: dict = Depends(get_google_credentials),
+    token: dict = Depends(verify_jwt_token)
+):
+    """Add an extracted event to Google Calendar"""
+    try:
+        print(f"[DEBUG] Received event data: {event}")
+        
+        # Create event body from the received event data
+        event_body = {
+            'summary': event['title'],
+            'description': event.get('description', ''),
+            'start': {
+                'dateTime': event['start_time'],
+                'timeZone': 'UTC',
+            },
+            'end': {
+                'dateTime': event.get('end_time', event['start_time']),
+                'timeZone': 'UTC',
+            },
+            'location': event.get('location', '')
+        }
+
+        # Only add attendees if they have valid email addresses
+        if event.get('participants'):
+            valid_attendees = []
+            for participant in event.get('participants', []):
+                if isinstance(participant, dict) and participant.get('email'):
+                    valid_attendees.append({'email': participant['email']})
+            
+            if valid_attendees:
+                event_body['attendees'] = valid_attendees
+                print(f"[DEBUG] Added valid attendees: {valid_attendees}")
+
+        print(f"[DEBUG] Final event body: {event_body}")
+        
+        calendar_service = GoogleCalendarService()
+        result = calendar_service.create_event(google_credentials, event_body)
+        print(f"[DEBUG] Event created successfully: {result}")
+        return result
+
+    except Exception as e:
+        print(f"[DEBUG] Error adding event: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to add event to calendar."
+        )

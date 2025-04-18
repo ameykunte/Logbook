@@ -162,4 +162,36 @@ export const createCalendarEvent = async (eventDetails) => {
   }
 };
 
+// Calendar Event Extraction
+export const extractEventsFromInteraction = async (interactionText, relationId, interactionDate) => {
+  try {
+    console.log('Extracting events with context:', { 
+      interactionText, 
+      relationId,
+      interactionDate 
+    });
+    
+    const response = await api.post('/api/calendar/extract-events', {
+      interaction_text: interactionText,
+      relationship_id: relationId,
+      interaction_date: interactionDate
+    });
+    
+    return response.data.events;
+  } catch (error) {
+    console.error('Error extracting events:', error);
+    throw error;
+  }
+};
+
+export const addExtractedEventToCalendar = async (event) => {
+  try {
+    const { data } = await api.post('/api/calendar/add-extracted-event', event);
+    return data;
+  } catch (error) {
+    console.error('Error adding event to calendar:', error);
+    throw error;
+  }
+};
+
 export default api;

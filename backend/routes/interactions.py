@@ -126,7 +126,6 @@ async def create_interaction(
 
 @interactions_router.patch("/{interaction_id}", response_model=Log)
 async def update_interactions(interaction_id: str, interaction: LogRequest, token: dict = Depends(verify_jwt_token)):
-async def update_interactions(interaction_id: str, interaction: LogRequest, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
 
