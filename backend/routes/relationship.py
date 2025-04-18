@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 from services.connect_db import supabase
+from services.embeddings import get_embeddings
 
 from routes.auth import verify_jwt_token
 
@@ -145,6 +146,9 @@ async def post_interaction(relationship_id: str, log_request: Log, token: dict =
         # Convert the `date` field to ISO 8601 string format
         if isinstance(new_log["date"], datetime):
             new_log["date"] = new_log["date"].isoformat()
+        
+        new_log["embeddings"] = get_embeddings(new_log["content"])
+        # print("Generated embeddings:", new_log["embeddings"], flush=True)  # Debug statement
 
         # Insert the log into the "logs" table
         response = supabase.table("logs").insert(new_log).execute()

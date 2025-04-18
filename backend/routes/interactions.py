@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 from services.connect_db import supabase
-
+from services.embeddings import get_embeddings
 from routes.auth import verify_jwt_token
 
 interactions_router = APIRouter()
@@ -44,6 +44,8 @@ async def update_interactions(interaction_id: str, interaction: Log, token: dict
         update_data = {
             "content": interaction.content
         }
+        
+        update_data["embeddings"] = get_embeddings(interaction.content)
         
         # Handle date conversion
         if interaction.date:

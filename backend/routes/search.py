@@ -7,7 +7,7 @@ load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 from services.llm import generate_response
 from services.connect_db import supabase
-from services.embeddings import get_embedding
+from services.embeddings import get_embeddings
 
 search_router = APIRouter()
 
@@ -22,7 +22,7 @@ async def hybrid_search(request: SearchRequest):
     try:
         print(f"[DEBUG] Received search request: {request.dict()}")
         # Generate query embedding
-        query_embedding = get_embedding(request.query)
+        query_embedding = get_embeddings(request.query)
         print(f"[DEBUG] Generated query embedding: {query_embedding}")
 
         # Convert embedding to list for JSON serialization
