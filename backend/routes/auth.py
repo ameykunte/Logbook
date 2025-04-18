@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends, Header
 from pydantic import BaseModel
 import datetime
 import bcrypt
@@ -110,9 +110,19 @@ async def signup(request: SignUpRequest):
         print("Error:", e)
         raise HTTPException(status_code=400, detail=str(e))
 
-def verify_jwt_token(token: str):
+def verify_jwt_token(authorization: str = Header(...)):
+    """
+    Verify the JWT token from the Authorization header.
+    """
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid Authorization header format")
+    
+    token = authorization.split(" ")[1]  # Extract the token after "Bearer"
+    print("Verifying token:", token, flush=True)  # Debug statement
+    
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        print("Token payload:", payload, flush=True)  # Debug statement
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")

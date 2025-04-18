@@ -19,7 +19,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(api_router, prefix="/api")
-app.include_router(relationship_router, prefix="/relationship")
+app.include_router(relationship_router, prefix="/relations")
 app.include_router(auth_router, prefix="/auth")
 app.include_router(search_router, prefix="/api")
 

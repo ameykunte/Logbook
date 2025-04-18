@@ -1,7 +1,7 @@
 import React from 'react';
 
 const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
-    const getTypeBackgroundColor = (type) => {
+  const getTypeBackgroundColor = (type) => {
     switch (type) {
       case 'Friends':
         return '#4CAF50'; // Green for Friends
@@ -26,10 +26,6 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
       border: '1px solid #333',
       position: 'relative',
     },
-    cardHover: {
-      transform: 'translateY(-3px)',
-      boxShadow: '0 5px 15px rgba(0, 0, 0, 0.2)',
-    },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -44,7 +40,7 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
     },
     type: {
       display: 'inline-block',
-      backgroundColor: getTypeBackgroundColor(relation.relationshipType), // Dynamic background color
+      backgroundColor: getTypeBackgroundColor(relation.category_type), // Dynamic background color
       color: 'white',
       padding: '4px 8px',
       borderRadius: '4px',
@@ -91,6 +87,13 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
     });
   };
 
+  const handleDelete = (e) => {
+    e.stopPropagation(); // Prevent triggering the onClick event for the card
+    if (window.confirm(`Are you sure you want to delete ${relation.name}?`)) {
+      onDelete(relation.relationship_id); // Call the onDelete function passed as a prop
+    }
+  };
+
   return (
     <div
       style={{ ...styles.card }}
@@ -99,19 +102,21 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
       {/* Header with Name and Type */}
       <div style={styles.header}>
         <h3 style={styles.name}>{relation.name}</h3>
-        <span style={styles.type}>{relation.relationshipType}</span>
+        <span style={styles.type}>{relation.category_type}</span>
       </div>
 
       {/* Details */}
-      <p style={styles.detail}>📍 {relation.city || 'No location'}</p>
-      <p style={styles.detail}>📧 {relation.email || 'No email'}</p>
-      <p style={styles.detail}>📱 {relation.phoneNumber || 'No phone'}</p>
+      <p style={styles.detail}>📍 {relation.location || 'No location'}</p>
+      <p style={styles.detail}>📧 {relation.email_address || 'No email'}</p>
+      <p style={styles.detail}>📱 {relation.phone_number || 'No phone'}</p>
 
       {/* Last Contacted and Actions */}
       <div style={styles.lastContactContainer}>
         <p style={styles.lastContact}>
           Last contacted:{' '}
-          {relation.lastContacted ? formatDate(relation.lastContacted) : 'Never'}
+          {relation.last_interaction_date
+            ? formatDate(relation.last_interaction_date)
+            : 'Never'}
         </p>
         <div style={styles.actions}>
           <button
@@ -128,10 +133,7 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
           </button>
           <button
             style={styles.actionButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            onClick={handleDelete}
             title="Delete"
           >
             <span role="img" aria-label="delete">

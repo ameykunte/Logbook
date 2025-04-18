@@ -68,7 +68,7 @@ const RelationDetail = () => {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-gray-100">{relation.name}</h1>
-              <p className="text-blue-400 mt-1">{relation.relationshipType}</p>
+              <p className="text-blue-400 mt-1">{relation.category_type}</p>
             </div>
             
             <button 
@@ -83,70 +83,33 @@ const RelationDetail = () => {
             <div>
               <h3 className="text-lg font-semibold text-gray-300 mb-2">Contact Information</h3>
               <div className="bg-gray-700 rounded-md p-4 space-y-2">
-                {relation.email && (
+                {relation.email_address && (
                   <p className="text-gray-300">
                     <span className="font-medium">Email:</span>{' '}
-                    <a href={`mailto:${relation.email}`} className="text-blue-400 hover:underline">
-                      {relation.email}
+                    <a href={`mailto:${relation.email_address}`} className="text-blue-400 hover:underline">
+                      {relation.email_address}
                     </a>
                   </p>
                 )}
                 
-                {relation.phoneNumber && (
+                {relation.phone_number && (
                   <p className="text-gray-300">
                     <span className="font-medium">Phone:</span>{' '}
-                    <a href={`tel:${relation.phoneNumber}`} className="text-blue-400 hover:underline">
-                      {relation.phoneNumber}
+                    <a href={`tel:${relation.phone_number}`} className="text-blue-400 hover:underline">
+                      {relation.phone_number}
                     </a>
                   </p>
                 )}
                 
-                {relation.city && (
+                {relation.location && (
                   <p className="text-gray-300">
-                    <span className="font-medium">Location:</span> {relation.city}
-                  </p>
-                )}
-                
-                {relation.linkedin && (
-                  <p className="text-gray-300">
-                    <span className="font-medium">LinkedIn:</span>{' '}
-                    <a href={relation.linkedin} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
-                      View Profile
-                    </a>
-                  </p>
-                )}
-                
-                {relation.instagram && (
-                  <p className="text-gray-300">
-                    <span className="font-medium">Instagram:</span>{' '}
-                    <a href={relation.instagram} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
-                      View Profile
-                    </a>
-                  </p>
-                )}
-                
-                {relation.snapchat && (
-                  <p className="text-gray-300">
-                    <span className="font-medium">Snapchat:</span> {relation.snapchat}
+                    <span className="font-medium">Location:</span> {relation.location}
                   </p>
                 )}
               </div>
             </div>
             
-            <div>
-              <h3 className="text-lg font-semibold text-gray-300 mb-2">Preferences</h3>
-              <div className="bg-gray-700 rounded-md p-4 space-y-4">
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Likes</p>
-                  <p className="text-gray-300">{relation.likes || 'No information'}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Dislikes</p>
-                  <p className="text-gray-300">{relation.dislikes || 'No information'}</p>
-                </div>
-              </div>
-            </div>
+            
           </div>
         </div>
         
