@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { createInteraction, fetchInteractions, updateInteraction, deleteInteraction } from '../../services/api';
+import { createInteraction, fetchInteractions, updateInteraction, deleteInteraction,summarizeText,
+  summarizeFile } from '../../services/api';
 import InteractionItem from './InteractionItem';
 
 const InteractionView = ({ relation, onClose, onUpdate }) => {
@@ -22,16 +23,17 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
       overflow: 'hidden'
     },
     header: {
-      padding: '16px',
-      borderBottom: '1px solid #333',
-      backgroundColor: '#1e1e1e',
+      // padding: '20px',
+      paddingLeft: '20px',
+      borderBottom: '1px',
+      // backgroundColor: '#1e1e1e',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center'
     },
     title: {
       margin: 0,
-      fontSize: '20px',
+      fontSize: '45px',
       fontWeight: 'bold',
       color: '#fff'
     },
@@ -50,7 +52,14 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
     content: {
       padding: '16px',
       flex: 1,
-      overflow: 'auto'
+      overflow: 'auto', // Allow scrolling
+      scrollbarWidth: 'none', // Hide scrollbar in Firefox
+      msOverflowStyle: 'none', // Hide scrollbar in IE and Edge
+    },
+    '@global': {
+      '::-webkit-scrollbar': {
+        display: 'none', // Hide scrollbar in Chrome and Safari
+      },
     },
     actionButtons: {
       display: 'flex',
@@ -172,25 +181,54 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setSelectedFile(file);
+  
+      // Automatically summarize the file after selection
+      setIsSummarizing(true);
+      try {
+        const summaryResult = await summarizeFile(file);
+        setSummary(summaryResult);
+      } catch (err) {
+        setError("Failed to summarize file. Please try again.");
+        console.error("File summarization error:", err);
+      } finally {
+        setIsSummarizing(false);
+      }
     }
   };
 
-  const summarizeText = async () => {
+  const summarizeTextWithGemini = async () => {
+    if (!interactionText.trim()) return;
+    
     setIsSummarizing(true);
     try {
-      // In a real implementation, this would call an API to summarize the text
-      // For now, we'll simulate the AI summarization with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSummary(interactionText);
+      const summaryResult = await summarizeText(interactionText);
+      setSummary(summaryResult);
     } catch (err) {
       setError("Failed to summarize text. Please try again.");
+      console.error("Summarization error:", err);
     } finally {
       setIsSummarizing(false);
     }
   };
+  const summarizeFileWithGemini = async () => {
+    if (!selectedFile) return;
+    
+    setIsSummarizing(true);
+    try {
+      const summaryResult = await summarizeFile(selectedFile);
+      setSummary(summaryResult);
+    } catch (err) {
+      setError("Failed to summarize file. Please try again.");
+      console.error("File summarization error:", err);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
 
   // Add these imports at the top
 // import { createInteraction, fetchInteractions, deleteInteraction, updateInteraction } from '../../services/api';
@@ -235,13 +273,10 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
     try {
       setIsSummarizing(true);
       
-      // In a real implementation, this would call an AI API to summarize the content
-      // For now, we'll simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const aiSummary = `AI Summary of interaction from ${formatDate(interaction.date)}: ${interaction.content.substring(0, 100)}...`;
+      const summaryResult = await summarizeText(interaction.content);
       
-      // You could either update the interaction with the summary or display it separately
-      alert(aiSummary); // For demonstration, just showing in an alert
+      // We could update the interaction with the summary or display it separately
+      alert(`AI Summary: ${summaryResult}`);
       
       setError(null);
     } catch (err) {
@@ -252,21 +287,21 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
     }
   };
 
-  const summarizeFile = async () => {
-    if (!selectedFile) return;
+  // const summarizeFile = async () => {
+  //   if (!selectedFile) return;
     
-    setIsSummarizing(true);
-    try {
-      // In a real implementation, this would upload the file and call an API to summarize it
-      // For now, we'll simulate the AI summarization with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSummary(`Summary of file: ${selectedFile.name}. This is an AI-generated summary of the document's key points and insights. In a real implementation, this would contain a detailed analysis of the document's content using AI tools.`);
-    } catch (err) {
-      setError("Failed to summarize file. Please try again.");
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
+  //   setIsSummarizing(true);
+  //   try {
+  //     // In a real implementation, this would upload the file and call an API to summarize it
+  //     // For now, we'll simulate the AI summarization with a timeout
+  //     await new Promise(resolve => setTimeout(resolve, 1500));
+  //     setSummary(`Summary of file: ${selectedFile.name}. This is an AI-generated summary of the document's key points and insights. In a real implementation, this would contain a detailed analysis of the document's content using AI tools.`);
+  //   } catch (err) {
+  //     setError("Failed to summarize file. Please try again.");
+  //   } finally {
+  //     setIsSummarizing(false);
+  //   }
+  // };
 
   const saveInteraction = async () => {
     try {
@@ -319,7 +354,7 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
       <div style={styles.header}>
         <div>
           <h2 style={styles.title}>{relation.name}</h2>
-          <p style={styles.subtitle}>{relation.relationshipType} • {relation.city}</p>
+          <p style={styles.subtitle}>{relation.category_type} • {relation.location}</p>
         </div>
         <button style={styles.closeButton} onClick={onClose}>×</button>
       </div>
@@ -363,6 +398,15 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
                 </span>
               )}
             </div>
+            {/* {selectedFile && !summary && (
+              <button 
+                style={{...styles.button, ...styles.secondaryButton}}
+                onClick={summarizeFileWithGemini}
+                disabled={isSummarizing}
+              >
+                {isSummarizing ? 'Summarizing...' : 'Summarize File'}
+              </button>
+            )} */}
             
             {summary && (
               <div style={{marginTop: '16px'}}>
@@ -394,22 +438,13 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
               {interactionText && !summary && (
                 <button 
                   style={{...styles.button, ...styles.secondaryButton}}
-                  onClick={summarizeText}
+                  onClick={summarizeTextWithGemini}
                   disabled={isSummarizing}
                 >
                   {isSummarizing ? 'Summarizing...' : 'Summarize Text'}
                 </button>
               )}
               
-              {selectedFile && !summary && (
-                <button 
-                  style={{...styles.button, ...styles.secondaryButton}}
-                  onClick={summarizeFile}
-                  disabled={isSummarizing}
-                >
-                  {isSummarizing ? 'Summarizing...' : 'Summarize File'}
-                </button>
-              )}
               
               <button 
                 style={{...styles.button, ...styles.primaryButton}}

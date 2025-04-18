@@ -111,7 +111,46 @@ export const deleteInteraction = async (id) => {
     throw error;
   }
 };
+export const summarizeText = async (text) => {
+  try {
+    const formData = new FormData();
+    formData.append('text', text);
+    
+    const response = await api.post('/summarize/text', formData);
+    return response.data.summary;
+  } catch (error) {
+    console.error('Error summarizing text:', error);
+    throw error;
+  }
+};
 
+export const summarizeFile = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/summarize/file', formData);
+    return response.data.summary;
+  } catch (error) {
+    console.error('Error summarizing file:', error);
+    throw error;
+  }
+
+};
+
+export const fetchSearchResults = async (searchQuery) => {
+  try {
+    const response  = await api.post('/api/search', {
+      query: searchQuery,
+      match_count: 5
+    });
+    const data = await response.data;
+    return data;
+  } catch (error) {
+    console.error('Error fetching search results:', error);
+    throw error;
+  }
+};
 // Add calendar related API calls
 export const createCalendarEvent = async (eventDetails) => {
   try {

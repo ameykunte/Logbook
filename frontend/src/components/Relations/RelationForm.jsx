@@ -10,7 +10,7 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
     email_address: '',
     phone_number: '',
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -35,7 +35,7 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       if (isEdit) {
         await updateRelation(relation.relationship_id, formData);
@@ -52,100 +52,192 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
 
   const relationshipTypes = ['Work', 'Family', 'Friends', 'Others'];
 
+  const styles = {
+    form: {
+      padding: '24px',
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '24px',
+    },
+    title: {
+      fontSize: '20px',
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    closeButton: {
+      color: '#aaa',
+      cursor: 'pointer',
+      fontSize: '18px',
+      border: 'none',
+      background: 'none',
+    },
+    error: {
+      marginBottom: '16px',
+      padding: '12px',
+      backgroundColor: 'rgba(153, 27, 27, 0.5)',
+      border: '1px solid #991b1b',
+      color: '#fca5a5',
+      borderRadius: '8px',
+    },
+    inputGroup: {
+      marginBottom: '16px',
+    },
+    label: {
+      display: 'block',
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#ccc',
+      marginBottom: '8px',
+    },
+    input: {
+      width: '100%',
+      padding: '8px',
+      backgroundColor: '#333',
+      border: '1px solid #444',
+      borderRadius: '6px',
+      color: '#fff',
+      outline: 'none',
+      fontSize: '14px',
+    },
+    select: {
+      width: '100%',
+      padding: '8px',
+      backgroundColor: '#333',
+      border: '1px solid #444',
+      borderRadius: '6px',
+      color: '#fff',
+      outline: 'none',
+      fontSize: '14px',
+    },
+    buttonGroup: {
+      marginTop: '24px',
+      display: 'flex',
+      gap: '12px',
+    },
+    primaryButton: {
+      flex: 1,
+      padding: '10px',
+      backgroundColor: '#2563eb',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+    },
+    primaryButtonHover: {
+      backgroundColor: '#1d4ed8',
+    },
+    secondaryButton: {
+      padding: '10px 16px',
+      backgroundColor: '#444',
+      color: '#ccc',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+    },
+    secondaryButtonHover: {
+      backgroundColor: '#555',
+    },
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-gray-100">{isEdit ? 'Edit Contact' : 'New Contact'}</h3>
-        <button 
-          type="button" 
+    <form onSubmit={handleSubmit} style={styles.form}>
+      <div style={styles.header}>
+        <h3 style={styles.title}>{isEdit ? 'Edit Contact' : 'New Contact'}</h3>
+        <button
+          type="button"
           onClick={onCancel}
-          className="text-gray-400 hover:text-gray-200"
+          style={styles.closeButton}
         >
           ✕
         </button>
       </div>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded-md">
-          {error}
-        </div>
-      )}
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Name*</label>
-          <input 
-            name="name" 
-            value={formData.name} 
-            onChange={handleChange} 
-            required
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+
+      {error && <div style={styles.error}>{error}</div>}
+
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>Name*</label>
+        <input
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+          style={styles.input}
+        />
+      </div>
+
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>Type*</label>
+        <select
+          name="category_type"
+          value={formData.category_type}
+          onChange={handleChange}
+          required
+          style={styles.select}
+        >
+          <option value="">Select a type</option>
+          {relationshipTypes.map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+      </div>
+
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>City</label>
+        <input
+          name="location"
+          value={formData.location}
+          onChange={handleChange}
+          style={styles.input}
+        />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Email</label>
+          <input
+            type="email"
+            name="email_address"
+            value={formData.email_address}
+            onChange={handleChange}
+            style={styles.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Type*</label>
-          <select
-            name="category_type"
-            value={formData.category_type}
+
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Phone Number</label>
+          <input
+            name="phone_number"
+            value={formData.phone_number}
             onChange={handleChange}
-            required
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-          >
-            <option value="">Select a type</option>
-            {relationshipTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">City</label>
-          <input 
-            name="location" 
-            value={formData.location} 
-            onChange={handleChange}
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
+            style={styles.input}
           />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
-            <input 
-              type="email" 
-              name="email_address" 
-              value={formData.email_address} 
-              onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
-            <input 
-              name="phone_number" 
-              value={formData.phone_number} 
-              onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
         </div>
       </div>
-      
-      <div className="mt-6 flex space-x-3">
-        <button 
-          type="submit" 
+
+      <div style={styles.buttonGroup}>
+        <button
+          type="submit"
           disabled={isSubmitting}
-          className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            ...styles.primaryButton,
+            ...(isSubmitting ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+          }}
         >
           {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Create Contact'}
         </button>
-        <button 
-          type="button" 
+        <button
+          type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="py-2 px-4 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md transition-colors"
+          style={{
+            ...styles.secondaryButton,
+            ...(isSubmitting ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+          }}
         >
           Cancel
         </button>
