@@ -12,7 +12,8 @@ SYSTEM_PROMPT = (
     "{\"summary\":\"<concise summary>\"} and nothing else."
 )
 
-def generate_summary(text: str, image_urls: list[str]) -> str:
+from typing import List
+def generate_summary(text: str, image_urls: List[str]) -> str:
     payload = json.dumps({"text": text, "images": image_urls})
     resp = model.generate_content([
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -24,3 +25,11 @@ def generate_summary(text: str, image_urls: list[str]) -> str:
     except json.JSONDecodeError:
         print("LLM returned invalid JSON:", resp.text)
         return ""
+    
+def generate_response(prompt):
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"Error generating response: {e}")
+        return None

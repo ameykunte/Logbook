@@ -3,6 +3,7 @@ from routes.relationship import relationship_router
 from routes.interactions import interactions_router
 from routes.search import search_router
 from routes.auth import auth_router
+from routes.search import search_router
 from fastapi import FastAPI, Request, Depends
 from dotenv import load_dotenv
 import os
