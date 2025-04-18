@@ -1,206 +1,100 @@
 import React, { useState } from 'react';
 
-const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
+const InteractionItem = ({ interaction, onEdit, onDelete }) => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedText, setEditedText] = useState(interaction.content);
 
-  const styles = {
-    container: {
+  const handleEditClick = () => {
+    console.log('Editing interaction:', interaction.log_id);
+    onEdit(interaction);
+    setShowDropdown(false);
+  };
+
+  const handleDeleteClick = () => {
+    if (window.confirm('Delete this interaction?')) {
+      console.log('Deleting interaction:', interaction.log_id);
+      onDelete(interaction.log_id);
+    }
+    setShowDropdown(false);
+  };
+
+  const formatDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+  return (
+    <div style={{
       backgroundColor: '#1a1a1a',
       borderRadius: '8px',
       padding: '16px',
       margin: '12px 0',
       position: 'relative',
       border: '1px solid #333',
-      transition: 'border-color 0.2s ease',
-    },
-    textContainer: {
-      flex: 1,
-      marginRight: '40px',
-    },
-    text: {
-      color: '#e0e0e0',
-      margin: 0,
-      fontSize: '14px',
-      lineHeight: '1.5',
-    },
-    editForm: {
-      display: 'flex',
-      gap: '8px',
-      width: '100%',
-    },
-    input: {
-      flex: 1,
-      padding: '8px 12px',
-      backgroundColor: '#2a2a2a',
-      border: '1px solid #444',
-      borderRadius: '4px',
-      color: '#e0e0e0',
-      fontSize: '14px',
-    },
-    saveButton: {
-      padding: '8px 16px',
-      backgroundColor: '#4CAF50',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s ease',
-    },
-    dropdownWrapper: {
-      position: 'absolute',
-      top: '16px',
-      right: '16px',
-    },
-    dropdownToggle: {
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: '#888',
-      fontSize: '20px',
-      cursor: 'pointer',
-      padding: '4px 8px',
-      borderRadius: '4px',
-      transition: 'background-color 0.2s ease',
-    },
-    dropdownMenu: {
-      position: 'absolute',
-      top: '100%',
-      right: '0',
-      backgroundColor: '#252525',
-      borderRadius: '4px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-      minWidth: '150px',
-      zIndex: 1000,
-      border: '1px solid #333',
-    },
-    dropdownItem: {
-      width: '100%',
-      padding: '8px 16px',
-      border: 'none',
-      backgroundColor: 'transparent',
-      color: '#e0e0e0',
-      textAlign: 'left',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      transition: 'background-color 0.2s ease',
-      ':hover': {
-        backgroundColor: '#333',
-      },
-    },
-    metadata: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      color: '#888',
-      fontSize: '12px',
-      marginBottom: '8px',
-    },
-  };
-
-  const handleEditClick = () => {
-    setIsEditing(true);
-    setShowDropdown(false);
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      await onEdit({ ...interaction, content: editedText });
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to save edit:', error);
-    }
-  };
-
-  const handleDeleteClick = async () => {
-    if (window.confirm('Are you sure you want to delete this interaction?')) {
-      try {
-        await onDelete(interaction.log_id);
-        setShowDropdown(false);
-      } catch (error) {
-        console.error('Failed to delete interaction:', error);
-      }
-    }
-  };
-
-  const handleSummarizeClick = async () => {
-    try {
-      await onSummarize(interaction);
-      setShowDropdown(false);
-    } catch (error) {
-      console.error('Failed to summarize interaction:', error);
-    }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  return (
-    <div style={styles.container}>
-      <div style={styles.metadata}>
+      color: '#e0e0e0'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        color: '#888',
+        fontSize: '12px',
+        marginBottom: '8px'
+      }}>
         <span>{formatDate(interaction.date)}</span>
         <span>{interaction.type || 'Note'}</span>
       </div>
-      
-      <div style={styles.textContainer}>
-        {isEditing ? (
-          <div style={styles.editForm}>
-            <input
-              style={styles.input}
-              value={editedText}
-              onChange={(e) => setEditedText(e.target.value)}
-              autoFocus
-            />
-            <button style={styles.saveButton} onClick={handleSaveEdit}>
-              Save
-            </button>
-          </div>
-        ) : (
-          <p style={styles.text}>{interaction.content}</p>
-        )}
-      </div>
 
-      <div style={styles.dropdownWrapper}>
+      <p style={{ fontStyle: 'italic', margin: '8px 0' }}>
+        🤖 {interaction.content}
+      </p>
+      <p style={{ margin: '8px 0' }}>
+        <strong>You said:</strong> {interaction.raw_text}
+      </p>
+      {interaction.image_urls?.map((url, i) => (
+        <img
+          key={i}
+          src={url}
+          alt=""
+          style={{ maxWidth: '100px', margin: '8px 8px 0 0' }}
+        />
+      ))}
+
+      <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
         <button
-          style={styles.dropdownToggle}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#888',
+            fontSize: '20px',
+            cursor: 'pointer'
+          }}
           onClick={() => setShowDropdown((prev) => !prev)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
         >
           ⋮
         </button>
         {showDropdown && (
-          <div style={styles.dropdownMenu}>
-            <button 
-              onClick={handleEditClick} 
-              style={styles.dropdownItem}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            background: '#252525',
+            border: '1px solid #333',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            zIndex: 1000
+          }}>
+            <button
+              style={{ display: 'block', width: '100%', padding: '8px', color: '#e0e0e0', background: 'transparent', border: 'none', textAlign: 'left' }}
+              onClick={handleEditClick}
             >
               ✏️ Edit
             </button>
-            <button 
-              onClick={handleDeleteClick} 
-              style={styles.dropdownItem}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            <button
+              style={{ display: 'block', width: '100%', padding: '8px', color: '#e0e0e0', background: 'transparent', border: 'none', textAlign: 'left' }}
+              onClick={handleDeleteClick}
             >
               🗑️ Delete
-            </button>
-            <button 
-              onClick={handleSummarizeClick} 
-              style={styles.dropdownItem}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              🧠 Summarize
             </button>
           </div>
         )}
