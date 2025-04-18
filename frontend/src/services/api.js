@@ -105,5 +105,18 @@ export const deleteInteraction = async (id) => {
   }
 };
 
+export const fetchSearchResults = async (searchQuery) => {
+  try {
+    const response  = await api.post('/api/search', {
+      query: searchQuery,
+      match_count: 5
+    });
+    const data = await response.data;
+    return data;
+  } catch (error) {
+    console.error('Error fetching search results:', error);
+    throw error;
+  }
+};
 
 export default api;

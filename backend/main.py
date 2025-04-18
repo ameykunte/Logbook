@@ -2,6 +2,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.relationship import relationship_router
 from routes.interactions import interactions_router
 from routes.auth import auth_router
+from routes.search import search_router
 from fastapi import FastAPI, Request, Depends
 from dotenv import load_dotenv
 import os
@@ -28,7 +29,7 @@ app.add_middleware(
 app.include_router(relationship_router, prefix="/relations")
 app.include_router(auth_router, prefix="/auth")
 app.include_router(interactions_router, prefix="/interactions")
-# app.include_router(search_router, prefix="/api")
+app.include_router(search_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
