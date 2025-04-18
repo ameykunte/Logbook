@@ -3,42 +3,33 @@ import './SearchLogs.css';
 import LogSearch from './../../assets/LogSearch.jpeg';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { fetchSearchResults } from '../../services/api'; // Adjust the import based on your project structure
 
 export default function SearchLogs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [aiSummary, setAiSummary] = useState('');
   
-  // Hardcoded data
-  const [searchResults, setSearchResults] = useState([
-    {
-      username: 'vamsee',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
-    },
-    {
-      username: 'sudhan',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
-    },
-    {
-      username: 'rahul',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
-    }
-  ]);
-  
-  const [aiSummary, setAiSummary] = useState(
-    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris'
-  );
-
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+    setAiSummary('');
+    setSearchResults([]);
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // You could filter or change the hardcoded results based on the search query
-      // For now, we'll just use the same data
-      setIsLoading(false);
-    }, 800);
+    try {
+      const data = await fetchSearchResults(searchQuery);
+      
+      // if (!response.ok) throw new Error('Search failed');
+      console.log('Search results:', data);
+      setSearchResults(data.results);
+      setAiSummary(data.llm_answer || 'No summary available');
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+      setAiSummary('Error loading results');
+    }
+    setIsLoading(false);
   };
 
   const handleKeyDown = (e) => {
@@ -47,25 +38,18 @@ export default function SearchLogs() {
     }
   };
 
+  // Determine if we should center the search UI
+  const shouldCenterSearch = searchResults.length === 0;
+
   return (
-    <div className="logo-search-container">
+    <div className={`logo-search-container ${shouldCenterSearch ? 'centered-search' : ''}`}>
       {/* Logo and Search Text */}
-      <div className="logo-search-header">
-        {/* <div className="logo-search-logo-box">
-          लोगो
-        </div>
-        <div className="logo-search-title">Search</div>
-        <div className="logo-search-icon-circle">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </div> */}
+      <div className={`logo-search-header ${shouldCenterSearch ? 'centered-logo' : ''}`}>
         <img style={{width:'30vw'}} src={LogSearch} alt="Logo" className="logo-search-logo"/>
       </div>
       
       {/* Search Bar */}
-      <div className="logo-search-bar-container">
+      <div className={`logo-search-bar-container ${shouldCenterSearch ? 'centered-search-bar' : ''}`}>
         <input
           type="text"
           placeholder="Search"
@@ -82,30 +66,44 @@ export default function SearchLogs() {
         </button>
       </div>
       
-      {/* Results Section - Always shown with hardcoded data */}
-      <div className="logo-search-results-container">
-        {/* Left Results Column */}
-        <div className="logo-search-results-left">
-          {searchResults.map((result, index) => (
-            <div key={index} className="logo-search-result-item">
-              <h2 className="logo-search-username">{result.username}</h2>
-              <div className="logo-search-result-box">
-                <p className="logo-search-result-text">{result.text}</p>
+      {/* Results Section - Only shown when there are results */}
+      {searchResults.length > 0 && (
+        <div className="logo-search-results-container">
+          {/* Left Results Column */}
+          <div className="logo-search-results-left">
+            {searchResults.map((result, index) => (
+              <div key={index} className="logo-search-result-item">
+                <div className="logo-search-result-header">
+                  <h2 className="logo-search-username">{result.name}</h2>
+                  <span className="logo-search-date">
+                    {new Date(result.date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+                <div className="logo-search-result-box">
+                  <p className="logo-search-result-text">{result.content}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {aiSummary && (
+            <div className="logo-search-results-right">
+              <h2 className="logo-search-summary-title">AI summary</h2>
+              <div className="logo-search-summary-box">
+                <p className="logo-search-summary-text">
+                  {aiSummary}
+                </p>
               </div>
             </div>
-          ))}
+          )}
         </div>
-        
-        {/* Right AI Summary Column */}
-        <div className="logo-search-summary-column">
-          <h2 className="logo-search-summary-title">AI summary</h2>
-          <div className="logo-search-summary-box">
-            <p className="logo-search-summary-text">
-              {aiSummary}
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
       
       {/* Loading state */}
       {isLoading && (

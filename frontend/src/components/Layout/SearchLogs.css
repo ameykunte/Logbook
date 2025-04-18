@@ -11,6 +11,26 @@
     font-family: 'Arial', sans-serif;
   }
   
+
+  .logo-search-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .logo-search-date {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 400;
+  }
+  
+  .logo-search-result-text {
+    margin: 0;
+    line-height: 1.5;
+    color: #444;
+  }
+  
   .logo-search-header {
     display: flex;
     align-items: center;
@@ -106,7 +126,7 @@
   }
   
   .logo-search-results-left {
-    width: 60%;
+    width: 70%;
   }
   
   .logo-search-result-item {
@@ -123,7 +143,22 @@
     border: 1px solid #444444;
     padding: 1rem;
     border-radius: 4px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: #555;
+  }
+
+  .logo-search-result-box {
+    height: 100px; /* Set a fixed height - adjust as needed */
+    max-height: 150px;
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding: 10px;
+    /* border: 1px solid #e0e0e0;  */
+    border-radius: 4px; /* Optional: rounds the corners */
+    margin-bottom: 10px; /* Optional: adds space between results */
+  }
+  
+  .logo-search-result-text {
+    margin: 0;
+    word-wrap: break-word; /* Ensures text wraps properly */
   }
   
   .logo-search-result-text {
@@ -131,8 +166,8 @@
     color: #e0e0e0;
   }
   
-  .logo-search-summary-column {
-    width: 40%;
+  .logo-search-results-right {
+    width: 30%;
     border-left: 1px solid #444444;
     padding-left: 3rem;
   }
@@ -147,7 +182,7 @@
     border: 1px solid #444444;
     padding: 1.5rem;
     border-radius: 4px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: #555;
   }
   
   .logo-search-summary-text {

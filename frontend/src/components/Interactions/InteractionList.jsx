@@ -10,6 +10,18 @@
 // import ErrorAlert from '../Common/ErrorAlert';
 // import InteractionItem from './InteractionItem';
 // import InteractionForm from './InteractionForm';
+// import React, { useState, useEffect } from 'react';
+// import { useParams } from 'react-router-dom';
+// import {
+//   fetchInteractions,
+//   createInteraction,
+//   updateInteraction,
+//   deleteInteraction
+// } from '../../services/api';
+// import Loader from '../Common/Loader';
+// import ErrorAlert from '../Common/ErrorAlert';
+// import InteractionItem from './InteractionItem';
+// import InteractionForm from './InteractionForm';
 
 // const InteractionList = () => {
 //   const { id: relationId } = useParams();
@@ -30,6 +42,9 @@
 //     setLoading(false);
 //   };
 
+//   useEffect(() => {
+//     loadInteractions();
+//   }, [relationId]);
 //   useEffect(() => {
 //     loadInteractions();
 //   }, [relationId]);
@@ -95,4 +110,5 @@
 //   );
 // };
 
+// export default InteractionList;
 // export default InteractionList;

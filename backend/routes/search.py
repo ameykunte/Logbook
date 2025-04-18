@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 import os
 import sys
@@ -8,38 +8,40 @@ sys.path.append(os.getenv('HOME_PATH'))
 from services.llm import generate_response
 from services.connect_db import supabase
 from services.embeddings import get_embeddings
+from routes.auth import verify_jwt_token
+from typing import List, Optional
+from datetime import datetime
 
 search_router = APIRouter()
 
 class SearchRequest(BaseModel):
     query: str
-    user_id: str
-    threshold: float = 0.3
     match_count: int = 10
 
 @search_router.post("/search")
-async def hybrid_search(request: SearchRequest):
+async def hybrid_search(
+    request: SearchRequest, 
+    token: dict = Depends(verify_jwt_token) 
+):
     try:
+        user_id = token["user_id"]
         print(f"[DEBUG] Received search request: {request.dict()}")
         # Generate query embedding
         query_embedding = get_embeddings(request.query)
         print(f"[DEBUG] Generated query embedding: {query_embedding}")
 
-        # Convert embedding to list for JSON serialization
-        if hasattr(query_embedding, "tolist"):
-            query_embedding = query_embedding.tolist()
-        print(f"[DEBUG] Converted query embedding for JSON: {query_embedding}")
-
         # Execute hybrid search
         result = supabase.rpc('hybrid_search', {
             'query_text': request.query,
             'query_embedding': query_embedding,
-            'user_id': request.user_id,
+            'user_id': user_id,
             'match_count': request.match_count,
             'full_text_weight': 0.6,
             'semantic_weight': 0.4
         }).execute()
         print(f"[DEBUG] Supabase RPC result: {result}")
+        
+        result.data = result.data[:request.match_count] if result.data else []
 
         # Process results (remove threshold filtering, just sort by hybrid_score)
         sorted_results = sorted(result.data, key=lambda r: r['hybrid_score'], reverse=True)
@@ -48,16 +50,22 @@ async def hybrid_search(request: SearchRequest):
         # Generate LLM response
         llm_answer = None
         if sorted_results:
-            context = "\n".join([f"{r['interaction_date']}: {r['details']}" for r in sorted_results])
+            system_prompt = "You are a helpful assistant. Answer the user's question based on the provided interactions. Dont answer like based on the interactions/information, just answer the question as he is asking you directly."
+            context = "\n".join([f"{r['date']}: {r['content']} (with {r['name']})" for r in sorted_results])
             print(f"[DEBUG] LLM context: {context}")
             response = generate_response(
-                f"Answer based on these interactions:\n{context}\n\nQuestion: {request.query}"
+                f" Instructions:\n{system_prompt}\n\nContext:\n{context}\n\nQuestion: {request.query}"
             )
             print(f"[DEBUG] LLM response: {response}")
             llm_answer = response
 
         return {
-            "results": sorted_results,
+            "results": [{
+                "name": r["name"],
+                "date": r["date"],
+                "content": r["content"],
+                "hybrid_score": r["hybrid_score"]
+            } for r in sorted_results],
             "llm_answer": llm_answer,
             "count": len(sorted_results)
         }

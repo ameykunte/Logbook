@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, Field, validator
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -14,11 +14,36 @@ from services.embeddings import get_embeddings
 from services.gemini import summarize_text, summarize_file
 from routes.auth import verify_jwt_token
 import numpy as np
+import numpy as np
 
 interactions_router = APIRouter()
 
 class Log(BaseModel):
     log_id: Optional[str] = None
+    relationship_id: str
+    content: str
+    date: datetime
+    fts: Optional[str] = None  # For tsvector
+    embeddings: List[float] = Field(
+        ...,  # Make it required
+        description="384-dimensional vector for semantic search"
+    )
+
+    @validator('embeddings', pre=True)
+    def parse_embeddings(cls, v):
+        if isinstance(v, str):
+            # Remove brackets and split by comma
+            cleaned = v.strip('[]')
+            return [float(x) for x in cleaned.split(',')]
+        return v
+
+    class Config:
+        json_encoders = {
+            np.float32: lambda x: float(x),
+            np.float64: lambda x: float(x)
+        }
+
+class LogRequest(BaseModel):
     relationship_id: str
     content: str
     date: datetime
@@ -100,6 +125,7 @@ async def create_interaction(
         raise HTTPException(status_code=500, detail=f"Failed to create interaction: {str(e)}")
 
 @interactions_router.patch("/{interaction_id}", response_model=Log)
+async def update_interactions(interaction_id: str, interaction: LogRequest, token: dict = Depends(verify_jwt_token)):
 async def update_interactions(interaction_id: str, interaction: LogRequest, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
