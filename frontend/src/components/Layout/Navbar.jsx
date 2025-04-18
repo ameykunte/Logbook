@@ -13,7 +13,7 @@ const Navbar = ({ onSearch }) => {
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '16px 24px',
-      borderBottom: '1px solid #333', // Keep the border for separation
+      // borderBottom: '1px solid #333', // Keep the border for separation
       backgroundColor: 'transparent', // Remove grey background
     },
     brand: {
@@ -21,34 +21,6 @@ const Navbar = ({ onSearch }) => {
       fontWeight: 'bold',
       color: '#4f9dfb',
       textDecoration: 'none',
-    },
-    searchBar: {
-      display: 'flex',
-      alignItems: 'center',
-      backgroundColor: '#2e2e2e',
-      borderRadius: '18px',
-      border: '1px solid #333',
-      padding: '4px 8px',
-      width: '300px',
-      position: 'relative',
-    },
-    searchInput: {
-      flex: 1,
-      border: 'none',
-      backgroundColor: 'transparent',
-      color: '#f5f5f5',
-      outline: 'none',
-      padding: '4px',
-      paddingRight: '24px', // Add padding to avoid overlap with the icon
-    },
-    searchIcon: {
-      position: 'absolute',
-      right: '12px',
-      color: '#f5f5f5',
-      fontSize: '16px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
     },
     profileIcon: {
       position: 'relative',
@@ -105,30 +77,6 @@ const Navbar = ({ onSearch }) => {
         Logbook
       </Link>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={styles.searchBar}>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={styles.searchInput}
-          />
-          <span
-            style={styles.searchIcon}
-            onClick={() => onSearch && onSearch(searchQuery)}
-          >
-            {/* 2D SVG Search Icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="16"
-              width="16"
-              fill="#f5f5f5"
-              viewBox="0 0 24 24"
-            >
-              <path d="M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z" />
-            </svg>
-          </span>
-        </div>
         <div style={{ position: 'relative' }}>
           <div style={styles.profileIcon} onClick={toggleDropdown}>
             ☰

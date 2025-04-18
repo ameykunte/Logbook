@@ -22,12 +22,15 @@ const Dashboard = () => {
     },
     main: {
       padding: '24px',
-      overflowY: 'auto'
+      overflowY: 'auto',
+      scrollbarWidth: 'none', // Hide scrollbar in Firefox
+  msOverflowStyle: 'none',
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
+      width: '30%',
       marginBottom: '24px'
     },
     heading: {
