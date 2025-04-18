@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 from datetime import datetime
+import numpy as np
 
 import os
 import sys
@@ -34,10 +35,34 @@ class RelationshipRequest(BaseModel):
     phone_number: Optional[str] = None
 
 class Log(BaseModel):
+    log_id: Optional[str] = None
+    relationship_id: str
+    content: str
+    date: datetime
+    fts: Optional[str] = None  # For tsvector
+    embeddings: List[float] = Field(
+        ...,  # Make it required
+        description="384-dimensional vector for semantic search"
+    )
+
+    @validator('embeddings', pre=True)
+    def parse_embeddings(cls, v):
+        if isinstance(v, str):
+            # Remove brackets and split by comma
+            cleaned = v.strip('[]')
+            return [float(x) for x in cleaned.split(',')]
+        return v
+
+    class Config:
+        json_encoders = {
+            np.float32: lambda x: float(x),
+            np.float64: lambda x: float(x)
+        }
+
+class LogRequest(BaseModel):
     relationship_id: Optional[str] = None
     content: str
     date: datetime
-    embeddings: Optional[List[float]] = None
 
 # Get all relationships for a user
 @relationship_router.get("/", response_model=List[Relationship])
@@ -126,37 +151,34 @@ async def list_interactions(relationship_id: str, token: dict = Depends(verify_j
         raise HTTPException(status_code=500, detail="Failed to fetch interactions")
 
 @relationship_router.post("/{relationship_id}/interactions", response_model=Log)
-async def post_interaction(relationship_id: str, log_request: Log, token: dict = Depends(verify_jwt_token)):
-    """
-    Add a new interaction (log) for a specific relationship.
-    """
+async def post_interaction(relationship_id: str, log_request: LogRequest, token: dict = Depends(verify_jwt_token)):
     try:
-        user_id = token["user_id"]  # Extract user_id from the token payload
+        user_id = token["user_id"]
 
         # Check if the relationship exists and belongs to the user
         relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not relationship_response.data:
             raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
 
-        # Prepare the log data for insertion
-        new_log = log_request.model_dump()
-        # print("New log data:", new_log, flush=True)  # Debug statement
-        new_log["relationship_id"] = relationship_id  # Associate the log with the relationship
-
-        # Convert the `date` field to ISO 8601 string format
-        if isinstance(new_log["date"], datetime):
-            new_log["date"] = new_log["date"].isoformat()
+        # Get embeddings first
+        embeddings = get_embeddings(log_request.content)
         
-        new_log["embeddings"] = get_embeddings(new_log["content"])
-        # print("Generated embeddings:", new_log["embeddings"], flush=True)  # Debug statement
+        # Create the new log entry
+        new_log = {
+            "content": log_request.content,
+            "date": log_request.date.isoformat() if isinstance(log_request.date, datetime) else log_request.date,
+            "relationship_id": relationship_id,
+            "embeddings": embeddings,
+            # fts will be handled by Supabase trigger/function
+        }
 
         # Insert the log into the "logs" table
         response = supabase.table("logs").insert(new_log).execute()
-
         if not response.data:
             raise HTTPException(status_code=500, detail="Failed to add interaction")
 
-        return response.data[0]  # Return the inserted log
+        return Log(**response.data[0])
+
     except Exception as e:
-        print("Error in post_interaction:", e, flush=True)  # Debug statement
-        raise HTTPException(status_code=500, detail="Failed to add interaction")
+        print("Error in post_interaction:", str(e), flush=True)
+        raise HTTPException(status_code=500, detail=f"Failed to add interaction: {str(e)}")

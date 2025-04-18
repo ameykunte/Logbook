@@ -17,45 +17,53 @@ const InteractionList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [editInteraction, setEditInteraction] = useState(null);
+  const [currentInteraction, setCurrentInteraction] = useState(null);
 
   const loadInteractions = async () => {
     setLoading(true);
     try {
+      console.log('Loading interactions for relation:', relationId);
       const data = await fetchInteractions(relationId);
+      console.log('Loaded interactions:', data);
       setInteractions(data);
     } catch (err) {
-      setError(err.message);
+      console.error('Error loading interactions:', err);
+      setError(err.message || 'Failed to load interactions');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     loadInteractions();
   }, [relationId]);
 
-  const handleDelete = async (id) => {
-    await deleteInteraction(id);
-    loadInteractions();
-  };
-
-  const handleCreate = () => {
-    setEditInteraction(null);
-    setShowForm(true);
+  const handleDelete = async (log_id) => {
+    try {
+      console.log('Deleting interaction:', log_id);
+      await deleteInteraction(log_id);
+      loadInteractions();
+    } catch (err) {
+      console.error('Error deleting interaction:', err);
+      alert('Failed to delete interaction.');
+    }
   };
 
   const handleEdit = (interaction) => {
-    setEditInteraction(interaction);
+    console.log('Editing interaction:', interaction.log_id);
+    setCurrentInteraction(interaction);
     setShowForm(true);
   };
 
-  const handleFormSubmit = async (formData) => {
-    if (editInteraction) {
-      await updateInteraction(editInteraction.id, formData);
-    } else {
-      await createInteraction(relationId, formData);
-    }
+  const handleCreate = () => {
+    setCurrentInteraction(null);
+    setShowForm(true);
+  };
+
+  const handleFormSuccess = (result) => {
+    console.log('Form submitted:', result);
     setShowForm(false);
+    setCurrentInteraction(null);
     loadInteractions();
   };
 
@@ -70,20 +78,26 @@ const InteractionList = () => {
           <button onClick={handleCreate} style={{ marginBottom: '1rem' }}>
             Add Interaction
           </button>
+
           {showForm && (
             <InteractionForm
-              interaction={editInteraction}
-              onSuccess={handleFormSubmit}
-              onCancel={() => setShowForm(false)}
+              relationId={relationId}
+              interaction={currentInteraction}
+              onSuccess={handleFormSuccess}
+              onCancel={() => {
+                setShowForm(false);
+                setCurrentInteraction(null);
+              }}
             />
           )}
+
           {interactions.length === 0 ? (
             <p>No interactions yet.</p>
           ) : (
-            interactions.map((inter) => (
+            interactions.map((interaction) => (
               <InteractionItem
-                key={inter.id}
-                interaction={inter}
+                key={interaction.log_id}
+                interaction={interaction}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />
