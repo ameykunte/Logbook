@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 
-from services.gemini import summarize_text, summarize_file
+from services.gemini import summarize_text, summarize_file, summarize_daily_interactions
 from routes.auth import verify_jwt_token
 
 summarization_router = APIRouter()
@@ -40,3 +40,21 @@ async def summarize_file_endpoint(
         return {"summary": summary}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File summarization failed: {str(e)}")
+
+
+
+@summarization_router.post("/daily")
+async def summarize_daily_interactions_endpoint(
+    text: str = Form(...),
+    token: dict = Depends(verify_jwt_token)
+):
+    """
+    Endpoint to summarize today's interactions using Gemini API
+    """
+    print("HIIIIIIIIIIIIIIIIIIIIIIIIIII")
+    try:
+        summary = await summarize_daily_interactions(text)
+        print(summary)
+        return {"summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Daily summarization failed: {str(e)}")

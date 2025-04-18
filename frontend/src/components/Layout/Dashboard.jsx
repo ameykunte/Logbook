@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import DailySummaryModal from './DailySummaryModal';
 import RelationList from '../Relations/RelationList';
 import SearchLogs from './SearchLogs'; // Import SearchLogs
 
 const Dashboard = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [showSearch, setShowSearch] = useState(false); // Track if search is open
-
+  const [isDailySummaryOpen, setIsDailySummaryOpen] = useState(false);
   const styles = {
     container: {
       display: 'flex',
@@ -49,6 +50,14 @@ const Dashboard = () => {
     setShowSearch(false);
   };
 
+  const handleOpenDailySummary = () => {
+    setIsDailySummaryOpen(true);
+  };
+
+  const handleCloseDailySummary = () => {
+    setIsDailySummaryOpen(false);
+  };
+
   return (
     <div style={styles.container}>
       <Sidebar 
@@ -57,6 +66,7 @@ const Dashboard = () => {
           setShowSearch(false); // Hide search if a type is selected
         }}
         onSearch={handleSidebarSearch} // Pass search handler
+        onDailySummary={handleOpenDailySummary} // Pass daily summary handler
       />
       <div style={styles.content}>
         <Navbar />
@@ -75,6 +85,10 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+      <DailySummaryModal 
+        isOpen={isDailySummaryOpen}
+        onClose={handleCloseDailySummary}
+      />
     </div>
   );
 };

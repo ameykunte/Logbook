@@ -5,6 +5,7 @@ import PrivateRoute from './components/Auth/PrivateRoute';
 import SignUpPage from './components/Auth/SignUpPage';
 import Dashboard from './components/Layout/Dashboard';
 import Search from './components/Layout/SearchLogs';
+// import DailySummary from './components/Layout/DailySummaryModal';
 
 function App() {
   return (
@@ -27,6 +28,14 @@ function App() {
           </PrivateRoute>
         }
       />
+      {/* <Route
+        path="/daily-summary"
+        element={
+          <PrivateRoute>
+            <DailySummary />
+          </PrivateRoute>
+        }
+      /> */}
     </Routes>
   );
 }

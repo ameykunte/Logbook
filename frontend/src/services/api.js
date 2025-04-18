@@ -145,4 +145,55 @@ export const fetchSearchResults = async (searchQuery) => {
   }
 };
 
+// Fetch all interactions from today for all relationships
+export const fetchAllInteractionsForToday = async () => {
+  try {
+
+    // Get today's date in ISO format (YYYY-MM-DD)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISOString = today.toISOString();
+    
+    // Fetch all relationships first
+    const relationships = await fetchRelations();
+    
+    // For each relationship, fetch today's interactions
+    const allInteractionsPromises = relationships.map(async (relationship) => {
+      console.log('Fetching interactions for relationship:', relationship.name);
+      const { data } = await api.get(`/relations/${relationship.relationship_id}/interactions`);      
+      console.log('Fetched interactions:', data);
+      
+      const interactions = data;
+      
+      // Filter to get only today's interactions
+      return interactions.filter(interaction => {
+        const interactionDate = new Date(interaction.date);
+        return interactionDate >= today;
+      });
+    });
+    
+    // Combine all interactions from all relationships
+    const allInteractionsArrays = await Promise.all(allInteractionsPromises);
+    return allInteractionsArrays.flat();
+    
+  } catch (error) {
+    console.error('Error fetching today\'s interactions:', error);
+    throw error;
+  }
+};
+
+// Send all today's interactions to Gemini for summarization
+export const summarizeDailyInteractions = async (textContent) => {
+  try {
+    const formData = new FormData();
+    formData.append('text', textContent);
+
+    const { data } = await api.post('/summarize/daily', formData);
+    return data.summary;
+  } catch (error) {
+    console.error('Error summarizing daily interactions:', error);
+    throw error;
+  }
+};
+
 export default api;
