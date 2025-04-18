@@ -1,100 +1,57 @@
-from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends, Request
+from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 from datetime import datetime
-import uuid
+
 import os
 import sys
 from dotenv import load_dotenv
-
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
-
 from services.connect_db import supabase
 from services.embeddings import get_embeddings
-from services.llm import generate_summary
 from routes.auth import verify_jwt_token
+import numpy as np
 
 interactions_router = APIRouter()
 
 class Log(BaseModel):
-    log_id: str
+    log_id: Optional[str] = None
     relationship_id: str
     content: str
     date: datetime
-    embeddings: List[float]
-
-@interactions_router.post(
-    "/relations/{relation_id}/interactions",
-    response_model=Log
-)
-async def create_interaction(
-    relation_id: str,
-    text: str = Form(...),
-    images: List[UploadFile] = File(default=[]),
-    token: dict = Depends(verify_jwt_token)
-):
-    user_id = token["user_id"]
-
-    # Verify ownership
-    rel_resp = (
-        supabase
-        .from_("relationships")
-        .select("relationship_id")
-        .eq("relationship_id", relation_id)
-        .eq("user_id", user_id)
-        .single()
-        .execute()
+    fts: Optional[str] = None  # For tsvector
+    embeddings: List[float] = Field(
+        ...,  # Make it required
+        description="384-dimensional vector for semantic search"
     )
-    if not rel_resp.data:
-        raise HTTPException(status_code=403, detail="Not authorized")
 
-    # (Optional) upload images and collect URLs
-    image_urls = []
-    for img in images:
-        key = f"interactions/{uuid.uuid4()}_{img.filename}"
-        supabase.storage.from_("images").upload(key, img.file)
-        url = supabase.storage.from_("images").get_public_url(key).public_url
-        image_urls.append(url)
+    @validator('embeddings', pre=True)
+    def parse_embeddings(cls, v):
+        if isinstance(v, str):
+            # Remove brackets and split by comma
+            cleaned = v.strip('[]')
+            return [float(x) for x in cleaned.split(',')]
+        return v
 
-    # Generate AI summary
-    summary = generate_summary(text, image_urls)
+    class Config:
+        json_encoders = {
+            np.float32: lambda x: float(x),
+            np.float64: lambda x: float(x)
+        }
 
-    # Compute embeddings for original text
-    embeddings = get_embeddings(text)
+class LogRequest(BaseModel):
+    relationship_id: Optional[str] = None
+    content: str
+    date: datetime
 
-    # Prepare record
-    log_id = str(uuid.uuid4())
-    record = {
-        "log_id": log_id,
-        "relationship_id": relation_id,
-        "content": summary,
-        "date": datetime.utcnow().isoformat(),
-        "embeddings": embeddings
-    }
-
-    # Insert into logs
-    insert_resp = supabase.from_("logs").insert(record).execute()
-    if insert_resp.error:
-        raise HTTPException(status_code=500, detail="Failed to create interaction")
-
-    return Log(**record)
-
-
-@interactions_router.patch(
-    "/interactions/{interaction_id}",
-    response_model=Log
-)
-async def update_interaction(
-    interaction_id: str,
-    interaction: Log,
-    token: dict = Depends(verify_jwt_token)
-):
+@interactions_router.patch("/{interaction_id}", response_model=Log)
+async def update_interactions(interaction_id: str, interaction: LogRequest, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
 
-        # Verify relationship ownership
-        rel_check = (
+        # Step 1: Check if the relationship_id belongs to the user
+        relationship_response = (
             supabase
             .from_("relationships")
             .select("relationship_id")
@@ -103,44 +60,46 @@ async def update_interaction(
             .single()
             .execute()
         )
-        if not rel_check.data:
-            raise HTTPException(status_code=403, detail="Unauthorized")
 
-        # Prepare update payload
+        if not relationship_response.data:
+            raise HTTPException(status_code=403, detail="Unauthorized: Relationship does not belong to user")
+        
+        # Prepare update data
         update_data = {
-            "content": interaction.content,
-            "embeddings": get_embeddings(interaction.content),
-            "date": interaction.date.isoformat()
+            "content": interaction.content
         }
+        
+        update_data["embeddings"] = get_embeddings(interaction.content)
+        
+        # Handle date conversion
+        if interaction.date:
+            update_data["date"] = interaction.date.isoformat()
 
-        upd = (
+        # Step 2: Update the log
+        update_response = (
             supabase
             .from_("logs")
-            .update(update_data)
+            .update(update_data)  # Remove the extra dictionary wrapping
             .eq("log_id", interaction_id)
             .execute()
         )
-        if upd.error or not upd.data:
-            raise HTTPException(status_code=500, detail="Failed to update interaction")
 
-        return Log(**upd.data[0])
-    except HTTPException:
-        raise
+        if not update_response.data:
+            raise HTTPException(status_code=500, detail="Failed to update log")
+
+        return update_response.data[0]
+
     except Exception as e:
-        print(f"Error updating interaction: {e}")
-        raise HTTPException(status_code=500, detail="Internal error")
-
-
-@interactions_router.delete("/interactions/{interaction_id}")
-async def delete_interaction(
-    interaction_id: str,
-    token: dict = Depends(verify_jwt_token)
-):
+        print(f"Error updating interaction: {str(e)}")  # Add debug logging
+        raise HTTPException(status_code=500, detail=f"Failed to update interaction: {str(e)}")
+    
+@interactions_router.delete("/{interaction_id}")
+async def delete_interaction(interaction_id: str, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
 
-        # Fetch relationship_id for this log
-        log_resp = (
+        # First, get the interaction to check relationship_id
+        interaction_response = (
             supabase
             .from_("logs")
             .select("relationship_id")
@@ -148,36 +107,38 @@ async def delete_interaction(
             .single()
             .execute()
         )
-        if not log_resp.data:
+
+        if not interaction_response.data:
             raise HTTPException(status_code=404, detail="Interaction not found")
 
-        # Verify ownership
-        rel_resp = (
+        # Check if the relationship belongs to the user
+        relationship_response = (
             supabase
             .from_("relationships")
             .select("relationship_id")
             .eq("user_id", user_id)
-            .eq("relationship_id", log_resp.data["relationship_id"])
+            .eq("relationship_id", interaction_response.data["relationship_id"])
             .single()
             .execute()
         )
-        if not rel_resp.data:
-            raise HTTPException(status_code=403, detail="Unauthorized")
 
-        # Delete
-        del_resp = (
+        if not relationship_response.data:
+            raise HTTPException(status_code=403, detail="Unauthorized: Cannot delete this interaction")
+
+        # Delete the interaction
+        delete_response = (
             supabase
             .from_("logs")
             .delete()
             .eq("log_id", interaction_id)
             .execute()
         )
-        if del_resp.error:
+
+        if not delete_response.data:
             raise HTTPException(status_code=500, detail="Failed to delete interaction")
 
-        return {"message": "Deleted successfully"}
-    except HTTPException:
-        raise
+        return {"message": "Interaction deleted successfully"}
+
     except Exception as e:
-        print(f"Error deleting interaction: {e}")
-        raise HTTPException(status_code=500, detail="Internal error")
+        print(f"Error deleting interaction: {str(e)}")  # Debug logging
+        raise HTTPException(status_code=500, detail=f"Failed to delete interaction: {str(e)}")
