@@ -29,7 +29,7 @@ const SignUpPage = () => {
 
     try {
       await signup(formData);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.detail || 'Signup failed');
     } finally {

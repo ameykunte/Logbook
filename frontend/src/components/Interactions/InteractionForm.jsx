@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createInteraction } from '../../services/api';
 
 const InteractionForm = ({ interaction, onSuccess, onCancel }) => {
   const isEdit = Boolean(interaction);
@@ -23,7 +24,16 @@ const InteractionForm = ({ interaction, onSuccess, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSuccess(formData);
+    try {
+      // Simulate API call
+      // createInteraction(formData);
+      onSuccess(formData);
+    }
+    catch (error) {
+      console.error('Error creating interaction:', error);
+      alert('Failed to create interaction. Please try again.');
+      onSuccess(null);
+    }
   };
 
   return (

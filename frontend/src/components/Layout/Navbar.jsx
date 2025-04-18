@@ -101,7 +101,7 @@ const Navbar = ({ onSearch }) => {
 
   return (
     <nav style={styles.navbar}>
-      <Link to="/dashboard" style={styles.brand}>
+      <Link to="/" style={styles.brand}>
         Logbook
       </Link>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

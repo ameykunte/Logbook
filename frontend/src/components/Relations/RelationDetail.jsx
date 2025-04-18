@@ -40,7 +40,7 @@ const RelationDetail = () => {
     <div className="h-screen bg-gray-900 p-6">
       <ErrorAlert message={error} />
       <button 
-        onClick={() => navigate('/dashboard')}
+        onClick={() => navigate('/')}
         className="mt-4 px-4 py-2 bg-gray-700 text-gray-200 rounded-md"
       >
         Back to Dashboard
@@ -57,10 +57,10 @@ const RelationDetail = () => {
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-6">
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/')}
             className="text-blue-400 hover:text-blue-300 flex items-center"
           >
-            ← Back to Dashboard
+            ← Back to 
           </button>
         </div>
         

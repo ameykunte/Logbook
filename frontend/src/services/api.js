@@ -76,7 +76,7 @@ export const fetchInteractions = async (relationId) => {
 
 export const createInteraction = async (relationId, interaction) => {
   try {
-    const { data } = await api.post(`/relationships/${relationId}/interactions`, interaction);
+    const { data } = await api.post(`/relations/${relationId}/interactions`, interaction);
     return data;
   } catch (error) {
     console.error('Error creating interaction:', error);
@@ -86,7 +86,8 @@ export const createInteraction = async (relationId, interaction) => {
 
 export const updateInteraction = async (id, interaction) => {
   try {
-    const { data } = await api.put(`/interactions/${id}`, interaction);
+    console.log('Updating interaction:', interaction); // Debugging line
+    const { data } = await api.patch(`/interactions/${id}`, interaction);
     return data;
   } catch (error) {
     console.error('Error updating interaction:', error);

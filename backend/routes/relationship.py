@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -31,6 +31,12 @@ class RelationshipRequest(BaseModel):
     location: Optional[str] = None
     email_address: Optional[str] = None
     phone_number: Optional[str] = None
+
+class Log(BaseModel):
+    relationship_id: Optional[str] = None
+    content: str
+    date: datetime
+    embeddings: Optional[List[float]] = None
 
 # Get all relationships for a user
 @relationship_router.get("/", response_model=List[Relationship])
@@ -96,3 +102,56 @@ async def delete_relationship(relationship_id: str, token: dict = Depends(verify
         return {"message": "Relationship deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to delete relationship")
+    
+@relationship_router.get("/{relationship_id}/interactions")
+async def list_interactions(relationship_id: str, token: dict = Depends(verify_jwt_token)):
+    try:
+        print("[DEBUG] Received request to list interactions for relationship_id")
+        user_id = token["user_id"]
+        try: 
+            # Check if the relationship exists and belongs to the user
+            relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+            if not relationship_response.data:
+                raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Failed to fetch relationship")
+        # Fetch interactions for the relationship
+        response = supabase.table("logs").select("*").eq("relationship_id", relationship_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="No interactions found")
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to fetch interactions")
+    
+@relationship_router.post("/{relationship_id}/interactions", response_model=Log)
+async def post_interaction(relationship_id: str, log_request: Log, token: dict = Depends(verify_jwt_token)):
+    """
+    Add a new interaction (log) for a specific relationship.
+    """
+    try:
+        user_id = token["user_id"]  # Extract user_id from the token payload
+
+        # Check if the relationship exists and belongs to the user
+        relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+        if not relationship_response.data:
+            raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
+
+        # Prepare the log data for insertion
+        new_log = log_request.model_dump()
+        # print("New log data:", new_log, flush=True)  # Debug statement
+        new_log["relationship_id"] = relationship_id  # Associate the log with the relationship
+
+        # Convert the `date` field to ISO 8601 string format
+        if isinstance(new_log["date"], datetime):
+            new_log["date"] = new_log["date"].isoformat()
+
+        # Insert the log into the "logs" table
+        response = supabase.table("logs").insert(new_log).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=500, detail="Failed to add interaction")
+
+        return response.data[0]  # Return the inserted log
+    except Exception as e:
+        print("Error in post_interaction:", e, flush=True)  # Debug statement
+        raise HTTPException(status_code=500, detail="Failed to add interaction")
