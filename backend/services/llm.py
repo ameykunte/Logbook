@@ -1,35 +1,60 @@
 import os
-import json
+import threading
+import time
+from fastapi import HTTPException
 import google.generativeai as genai
 
+class TokenBucketLimiter:
+    """
+    A thread‑safe token‑bucket rate limiter decorator.
+    Allows up to max_calls per period (in seconds).
+    """
+    def __init__(self, max_calls: int, period: float):
+        self.max_calls = max_calls
+        self.period = period
+        self.lock = threading.Lock()
+        self.calls: list[float] = []
+
+    def __call__(self, fn):
+        def wrapper(*args, **kwargs):
+            now = time.time()
+            window_start = now - self.period
+
+            with self.lock:
+                # drop timestamps outside the window
+                self.calls = [t for t in self.calls if t > window_start]
+
+                if len(self.calls) >= self.max_calls:
+                    raise HTTPException(
+                        status_code=429,
+                        detail=f"LLM rate limit exceeded ({self.max_calls}/{self.period}s)"
+                    )
+
+                # record this call
+                self.calls.append(now)
+
+            return fn(*args, **kwargs)
+
+        # copy metadata
+        wrapper.__name__ = fn.__name__
+        wrapper.__doc__ = fn.__doc__
+        return wrapper
+
+
+# configure the Gemini client once
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-2.0-flash')
+_model = genai.GenerativeModel("gemini-2.0-flash")
 
-SYSTEM_PROMPT = (
-    "You are a concise note-taking assistant. "
-    "Given user text and zero or more image URLs, "
-    "you must reply with STRICT JSON ONLY, formatted exactly as: "
-    "{\"summary\":\"<concise summary>\"} and nothing else."
-)
 
-from typing import List
-def generate_summary(text: str, image_urls: List[str]) -> str:
-    payload = json.dumps({"text": text, "images": image_urls})
-    resp = model.generate_content([
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": payload}
-    ])
+@TokenBucketLimiter(max_calls=3, period=10.0)
+def generate_response(prompt: str) -> str:
+    """
+    Synchronously calls Gemini and returns text.
+    If we exceed 5 calls/sec we automatically 429.
+    """
     try:
-        result = json.loads(resp.text)
-        return result.get("summary", "")
-    except json.JSONDecodeError:
-        print("LLM returned invalid JSON:", resp.text)
-        return ""
-    
-def generate_response(prompt):
-    try:
-        response = model.generate_content(prompt)
-        return response.text
+        # blocking call
+        resp = _model.generate_content(prompt)
+        return resp.text
     except Exception as e:
-        print(f"Error generating response: {e}")
-        return None
+        raise HTTPException(status_code=500, detail=f"LLM error: {e}")

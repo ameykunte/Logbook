@@ -1,8 +1,11 @@
+// src/App.jsx
+
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
 import LoginPage from './components/Auth/LoginPage';
-import PrivateRoute from './components/Auth/PrivateRoute';
 import SignUpPage from './components/Auth/SignUpPage';
+import PrivateRoute from './components/Auth/PrivateRoute';
 import Dashboard from './components/Layout/Dashboard';
 import Search from './components/Layout/SearchLogs';
 // import DailySummary from './components/Layout/DailySummaryModal';
@@ -10,16 +13,24 @@ import Search from './components/Layout/SearchLogs';
 function App() {
   return (
     <Routes>
+      {/* Public landing page */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Auth pages */}
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected dashboard */}
       <Route
-        path="/"
+        path="/dashboard/*"
         element={
           <PrivateRoute>
             <Dashboard />
           </PrivateRoute>
         }
       />
+
+      {/* Protected search view */}
       <Route
         path="/search"
         element={
@@ -28,14 +39,9 @@ function App() {
           </PrivateRoute>
         }
       />
-      {/* <Route
-        path="/daily-summary"
-        element={
-          <PrivateRoute>
-            <DailySummary />
-          </PrivateRoute>
-        }
-      /> */}
+
+      {/* Redirect any unknown route back to landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

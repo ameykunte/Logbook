@@ -7,9 +7,16 @@ const api = axios.create({
 // Attach token to each request
 api.interceptors.request.use((config) => {
   const access_token = localStorage.getItem('access_token');
+  const googleCredentials = localStorage.getItem('googleCredentials');
+  
   if (access_token) {
     config.headers.Authorization = `Bearer ${access_token}`;
   }
+  
+  if (googleCredentials && config.url.includes('/calendar')) {
+    config.headers['Google-Credentials'] = googleCredentials;
+  }
+  
   console.log("Request headers:", config.headers); // Debug statement
   return config;
 });
@@ -131,16 +138,59 @@ export const summarizeFile = async (file) => {
 
 };
 
-export const fetchSearchResults = async (searchQuery) => {
+export const fetchSearchResults = async (searchQuery, searchType) => {
   try {
     const response  = await api.post('/api/search', {
       query: searchQuery,
+      search_type: searchType,
       match_count: 5
     });
     const data = await response.data;
     return data;
   } catch (error) {
     console.error('Error fetching search results:', error);
+    throw error;
+  }
+};
+// Add calendar related API calls
+export const createCalendarEvent = async (eventDetails) => {
+  try {
+    const { data } = await api.post('/api/calendar/events', eventDetails);
+    return data;
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    throw error;
+  }
+};
+
+// Calendar Event Extraction
+export const extractEventsFromInteraction = async (interactionText, relationId, interactionDate) => {
+  try {
+    console.log('Extracting events with context:', { 
+      interactionText, 
+      relationId,
+      interactionDate 
+    });
+    
+    const response = await api.post('/api/calendar/extract-events', {
+      interaction_text: interactionText,
+      relationship_id: relationId,
+      interaction_date: interactionDate
+    });
+    
+    return response.data.events;
+  } catch (error) {
+    console.error('Error extracting events:', error);
+    throw error;
+  }
+};
+
+export const addExtractedEventToCalendar = async (event) => {
+  try {
+    const { data } = await api.post('/api/calendar/add-extracted-event', event);
+    return data;
+  } catch (error) {
+    console.error('Error adding event to calendar:', error);
     throw error;
   }
 };
