@@ -87,6 +87,11 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
     });
   };
 
+  const handleEdit = (e) => {
+    e.stopPropagation(); // Prevent triggering the onClick event for the card
+    onEdit(relation); // Pass the relation object to the onEdit function
+  };
+
   const handleDelete = (e) => {
     e.stopPropagation(); // Prevent triggering the onClick event for the card
     if (window.confirm(`Are you sure you want to delete ${relation.name}?`)) {
@@ -121,10 +126,7 @@ const RelationCard = ({ relation, onEdit, onDelete, onClick }) => {
         <div style={styles.actions}>
           <button
             style={styles.actionButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
+            onClick={handleEdit}
             title="Edit"
           >
             <span role="img" aria-label="edit">
