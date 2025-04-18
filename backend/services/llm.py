@@ -12,7 +12,7 @@ SYSTEM_PROMPT = (
     "{\"summary\":\"<concise summary>\"} and nothing else."
 )
 
-def generate_summary(text: str, image_urls: List[str]) -> str:
+def generate_summary(text: str, image_urls: list[str]) -> str:
     payload = json.dumps({"text": text, "images": image_urls})
     resp = model.generate_content([
         {"role": "system", "content": SYSTEM_PROMPT},
