@@ -4,7 +4,7 @@ import RelationForm from './RelationForm';
 import InteractionView from '../Interactions/InteractionView';
 import Loader from '../Common/Loader';
 import ErrorAlert from '../Common/ErrorAlert';
-import { fetchRelations, deleteRelation } from '../../services/api';
+import { fetchRelations, deleteRelation, updateRelation } from '../../services/api';
 
 const RelationList = ({ filterType }) => {
   const [relations, setRelations] = useState([]); // Fetched relations
@@ -12,7 +12,7 @@ const RelationList = ({ filterType }) => {
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState(null); // Error state
   const [showForm, setShowForm] = useState(false);
-  const [editRelation, setEditRelation] = useState(null);
+  const [editRelation, setEditRelation] = useState(null); // Relation being edited
   const [selectedRelation, setSelectedRelation] = useState(null);
   const [showInteractionView, setShowInteractionView] = useState(false);
 
@@ -128,8 +128,8 @@ const RelationList = ({ filterType }) => {
   }, [filterType, relations]);
 
   const handleCreate = () => {
-    setEditRelation(null);
-    setShowForm(true);
+    setEditRelation(null); // Clear the edit relation
+    setShowForm(true); // Show the form for creating a new relation
   };
 
   const handleFormSuccess = () => {
@@ -137,16 +137,19 @@ const RelationList = ({ filterType }) => {
     // Reload relations after a successful form submission
     setLoading(true);
     fetchRelations()
-      .then((data) => {
-        setRelations(data);
-        setFilteredRelations(data);
-      })
-      .catch((err) => {
-        console.error('Error reloading relations:', err);
-        setError('Failed to reload relationships.');
-      })
-      .finally(() => setLoading(false));
-  };
+    .then((data) => {
+    setRelations(data);
+    setFilteredRelations(data);
+    })
+    .catch((err) => {
+    console.error('Error reloading relations:', err);
+    setError('Failed to reload relationships.');
+    })
+    .finally(() => setLoading(false));
+    };
+    
+    
+  
 
   const handleRelationClick = (relation) => {
     setSelectedRelation(relation);
@@ -170,6 +173,12 @@ const RelationList = ({ filterType }) => {
     }
   };
 
+  const handleEdit = async (relation) => {
+    console.log('Editing relation:', relation);
+    setEditRelation(relation); // Set the relation to be edited
+    setShowForm(true); // Show the edit form
+  };
+
   // Render loading or error states
   if (loading) {
     return <Loader />;
@@ -178,7 +187,6 @@ const RelationList = ({ filterType }) => {
   if (error) {
     return <ErrorAlert message={error} />;
   }
-
 
   return (
     <div style={styles.container}>
@@ -195,7 +203,7 @@ const RelationList = ({ filterType }) => {
             <RelationCard
               key={relation.relationship_id}
               relation={relation}
-              onEdit={() => setEditRelation(relation)}
+              onEdit={() => handleEdit(relation)} // Pass the handleEdit function
               onDelete={() => handleDelete(relation.relationship_id)} // Pass the handleDelete function
               onClick={() => handleRelationClick(relation)}
             />
@@ -218,9 +226,9 @@ const RelationList = ({ filterType }) => {
         <div style={styles.modal}>
           <div style={styles.modalContent}>
             <RelationForm
-              relation={editRelation}
-              onSuccess={handleFormSuccess}
-              onCancel={() => setShowForm(false)}
+              relation={editRelation} // Pass the relation to be edited
+              onSuccess={handleFormSuccess} // Handle form submission
+              onCancel={() => setShowForm(false)} // Close the form
             />
           </div>
         </div>

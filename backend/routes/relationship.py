@@ -81,7 +81,7 @@ async def add_relationship(relationship: RelationshipRequest, token: dict = Depe
 
 # Update an existing relationship
 @relationship_router.put("/{relationship_id}", response_model=Relationship)
-async def update_relationship(relationship_id: str, updated_relationship: Relationship, token: dict = Depends(verify_jwt_token)):
+async def update_relationship(relationship_id: str, updated_relationship: RelationshipRequest, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
         response = supabase.table("relationships").update(updated_relationship.dict()).eq("relationship_id", relationship_id).eq("user_id", user_id).execute()

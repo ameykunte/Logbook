@@ -6,12 +6,14 @@ from routes.auth import auth_router
 from fastapi import FastAPI, Request, Depends
 from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
+
+from routes.search import search_router
 
 load_dotenv()
-# from routes.search import search_router
-
 app = FastAPI()
 
+# Enable CORS
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,

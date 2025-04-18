@@ -38,7 +38,7 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
     
     try {
       if (isEdit) {
-        await updateRelation(relation.id, formData);
+        await updateRelation(relation.relationship_id, formData);
       } else {
         await createRelation(formData);
       }
