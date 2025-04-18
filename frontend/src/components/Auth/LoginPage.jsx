@@ -18,7 +18,7 @@ const LoginPage = () => {
 
     try {
       await login({ email, password });
-      navigate('/');
+      navigate('/dashboard');      
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed');
     } finally {
