@@ -131,10 +131,11 @@ export const summarizeFile = async (file) => {
 
 };
 
-export const fetchSearchResults = async (searchQuery) => {
+export const fetchSearchResults = async (searchQuery, searchType) => {
   try {
     const response  = await api.post('/api/search', {
       query: searchQuery,
+      search_type: searchType,
       match_count: 5
     });
     const data = await response.data;
