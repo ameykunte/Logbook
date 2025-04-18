@@ -76,7 +76,7 @@ const SignUpPage = () => {
           />
         </div>
 
-        <button type="submit" disabled={loading}>
+        <button className='Buttoo' type="submit" disabled={loading}>
           {loading ? 'Signing up...' : 'Sign Up'}
         </button>
 

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 // Relationship types
 const types = ['Work', 'Family', 'Friends', 'Others'];
 
-const Sidebar = ({ onSelectType }) => {
+const Sidebar = ({ onSelectType, onSearch }) => {
   const [selected, setSelected] = useState(null);
 
   const styles = {
@@ -11,7 +11,11 @@ const Sidebar = ({ onSelectType }) => {
       width: '200px',
       backgroundColor: '#1e1e1e',
       borderRight: '1px solid #333',
-      padding: '24px'
+      padding: '24px',
+      height: '100vh', // Make sidebar take full height
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between' // Space between content and button
     },
     heading: {
       fontSize: '18px',
@@ -35,6 +39,16 @@ const Sidebar = ({ onSelectType }) => {
     listItemSelected: {
       backgroundColor: '#0D47A1',
       color: 'white'
+    },
+    Search: {
+      marginTop: '0', // Remove margin top
+      padding: '10px 16px',
+      backgroundColor: '#1976D2',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: '16px',
+      cursor: 'pointer'
     }
   };
 
@@ -50,6 +64,10 @@ const Sidebar = ({ onSelectType }) => {
     if (onSelectType) {
       onSelectType(type);
     }
+  };
+
+  const handleSearchClick = () => {
+    if (onSearch) onSearch();
   };
 
   return (
@@ -80,6 +98,12 @@ const Sidebar = ({ onSelectType }) => {
           ))}
         </ul>
       </div>
+      <button 
+        style={styles.Search}
+        onClick={handleSearchClick}
+      >
+        Search
+      </button>
     </aside>
   );
 };

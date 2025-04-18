@@ -5,6 +5,7 @@ import PrivateRoute from './components/Auth/PrivateRoute';
 import HelloMessage from './components/Hello/HelloMessage';
 import SignUpPage from './components/Auth/SignUpPage';
 import Dashboard from './components/Layout/Dashboard';
+import Search from './components/Layout/SearchLogs';
 
 function App() {
   return (
@@ -18,6 +19,18 @@ function App() {
             <Dashboard />
           </PrivateRoute>
         }
+      />
+      <Route
+        path="/search"
+        element={
+          <PrivateRoute>
+            <Search />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/"
+        element={<Navigate to="/login" replace />}
       />
       <Route path="/hello" element={
         <PrivateRoute>

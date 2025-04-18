@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import RelationList from '../Relations/RelationList';
+import SearchLogs from './SearchLogs'; // Import SearchLogs
 
 const Dashboard = () => {
   const [selectedType, setSelectedType] = useState(null);
+  const [showSearch, setShowSearch] = useState(false); // Track if search is open
 
   const styles = {
     container: {
@@ -34,18 +36,40 @@ const Dashboard = () => {
     }
   };
 
+  // Handler for sidebar search button
+  const handleSidebarSearch = () => {
+    setShowSearch(true);
+  };
+
+  // Handler to go back to relations (optional: you can add a back button in SearchLogs)
+  const handleBackToRelations = () => {
+    setShowSearch(false);
+  };
+
   return (
     <div style={styles.container}>
-      <Sidebar onSelectType={setSelectedType} />
+      <Sidebar 
+        onSelectType={(type) => {
+          setSelectedType(type);
+          setShowSearch(false); // Hide search if a type is selected
+        }}
+        onSearch={handleSidebarSearch} // Pass search handler
+      />
       <div style={styles.content}>
         <Navbar />
         <div style={styles.main}>
-          <div style={styles.header}>
-            <h2 style={styles.heading}>
-              {selectedType ? `${selectedType} Contacts` : 'All Contacts'}
-            </h2>
-          </div>
-          <RelationList filterType={selectedType} />
+          {!showSearch ? (
+            <>
+              <div style={styles.header}>
+                <h2 style={styles.heading}>
+                  {selectedType ? `${selectedType} Contacts` : 'All Contacts'}
+                </h2>
+              </div>
+              <RelationList filterType={selectedType} />
+            </>
+          ) : (
+            <SearchLogs /* Optionally pass handleBackToRelations as a prop */ />
+          )}
         </div>
       </div>
     </div>
