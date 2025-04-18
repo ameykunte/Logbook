@@ -115,14 +115,15 @@ async def list_interactions(relationship_id: str, token: dict = Depends(verify_j
                 raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
         except Exception as e:
             raise HTTPException(status_code=500, detail="Failed to fetch relationship")
+        
         # Fetch interactions for the relationship
         response = supabase.table("logs").select("*").eq("relationship_id", relationship_id).execute()
-        if not response.data:
-            raise HTTPException(status_code=404, detail="No interactions found")
+        # if not response.data:
+        #     raise HTTPException(status_code=404, detail="No interactions found")
         return response.data
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to fetch interactions")
-    
+
 @relationship_router.post("/{relationship_id}/interactions", response_model=Log)
 async def post_interaction(relationship_id: str, log_request: Log, token: dict = Depends(verify_jwt_token)):
     """
