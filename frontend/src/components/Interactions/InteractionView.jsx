@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { createInteraction, fetchInteractions } from '../../services/api';
+import { createInteraction, fetchInteractions, updateInteraction, deleteInteraction } from '../../services/api';
+import InteractionItem from './InteractionItem';
 
 const InteractionView = ({ relation, onClose, onUpdate }) => {
   const [interactions, setInteractions] = useState([]);
@@ -154,13 +155,13 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
     setLoading(true);
     try {
       // If we're in development and we have mock interactions, use those
-      if (process.env.NODE_ENV === 'development' && relation.interactions) {
-        setInteractions(relation.interactions);
-      } else {
+      // if (process.env.NODE_ENV === 'development' && relation.interactions) {
+      //   setInteractions(relation.interactions);
+      // } else {
         // Otherwise, fetch from API
-        const data = await fetchInteractions(relation.id);
+        const data = await fetchInteractions(relation.relationship_id);
         setInteractions(data || []);
-      }
+      // }
       setError(null);
     } catch (err) {
       console.error("Failed to load interactions:", err);
@@ -191,6 +192,66 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
     }
   };
 
+  // Add these imports at the top
+// import { createInteraction, fetchInteractions, deleteInteraction, updateInteraction } from '../../services/api';
+
+  // Add these new state variables in the component
+  const [selectedInteraction, setSelectedInteraction] = useState(null);
+
+  // Add these event handlers after the existing functions
+  const handleEdit = async (updatedInteraction) => {
+    try {
+      // Call API to update the interaction
+      await updateInteraction(updatedInteraction.log_id, updatedInteraction);
+      
+      // Update the interactions list
+      setInteractions(interactions.map(interaction => 
+        interaction.log_id === updatedInteraction.log_id ? updatedInteraction : interaction
+      ));
+      
+      setError(null);
+    } catch (err) {
+      console.error("Failed to edit interaction:", err);
+      setError("Failed to edit interaction. Please try again.");
+    }
+  };
+
+  const handleDelete = async (interactionId) => {
+    try {
+      // Call API to delete the interaction
+      await deleteInteraction(interactionId);
+      
+      // Remove the interaction from the list
+      setInteractions(interactions.filter(interaction => interaction.log_id !== interactionId));
+      
+      setError(null);
+    } catch (err) {
+      console.error("Failed to delete interaction:", err);
+      setError("Failed to delete interaction. Please try again.");
+    }
+  };
+
+  const handleSummarize = async (interaction) => {
+    try {
+      setIsSummarizing(true);
+      
+      // In a real implementation, this would call an AI API to summarize the content
+      // For now, we'll simulate the API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const aiSummary = `AI Summary of interaction from ${formatDate(interaction.date)}: ${interaction.content.substring(0, 100)}...`;
+      
+      // You could either update the interaction with the summary or display it separately
+      alert(aiSummary); // For demonstration, just showing in an alert
+      
+      setError(null);
+    } catch (err) {
+      console.error("Failed to summarize interaction:", err);
+      setError("Failed to summarize interaction. Please try again.");
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   const summarizeFile = async () => {
     if (!selectedFile) return;
     
@@ -210,24 +271,16 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
   const saveInteraction = async () => {
     try {
       const newInteraction = {
-        relationId: relation.id,
-        date: new Date().toISOString(),
-        summary: summary || interactionText,
-        type: selectedFile ? 'document' : 'text'
+        "date": new Date().toISOString(),
+        "content": summary || interactionText,
+        "embeddings": [],
       };
       
       // In a real implementation, this would create the interaction via API
       // For now, we'll simulate the API call
-      if (process.env.NODE_ENV === 'development') {
-        const mockNewInteraction = {
-          ...newInteraction,
-          id: Date.now()
-        };
-        setInteractions([mockNewInteraction, ...interactions]);
-      } else {
-        await createInteraction(newInteraction);
-        await loadInteractions();
-      }
+      await createInteraction(relation.relationship_id, newInteraction);
+      await loadInteractions();
+      setInteractions([newInteraction, ...interactions]);
       
       // Reset form
       setInteractionText('');
@@ -379,13 +432,22 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
           <div style={styles.interactionList}>
             {interactions.map((interaction) => (
               <div key={interaction.id} style={styles.interactionCard}>
-                <div style={styles.interactionHeader}>
-                  <span>{getInteractionTypeIcon(interaction.type)} {interaction.type.charAt(0).toUpperCase() + interaction.type.slice(1)}</span>
-                  <span>{formatDate(interaction.date)}</span>
+                <InteractionItem
+                  interaction={interaction}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onSummarize={handleSummarize}
+                />
+                {/* <div style={styles.interactionHeader}>
+                <span>
+                  {getInteractionTypeIcon(interaction?.type || '')} 
+                  {interaction?.type ? interaction.type.charAt(0).toUpperCase() + interaction.type.slice(1) : 'Unknown'}
+                </span>
+                <span>{formatDate(interaction.date)}</span>
                 </div>
                 <div style={styles.interactionContent}>
-                  {interaction.summary}
-                </div>
+                  {interaction.content}
+                </div> */}
               </div>
             ))}
           </div>

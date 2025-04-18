@@ -5,11 +5,12 @@ const api = axios.create({
 });
 
 // Attach token to each request
-api.interceptors.request.use(config => {
+api.interceptors.request.use((config) => {
   const access_token = localStorage.getItem('access_token');
   if (access_token) {
     config.headers.Authorization = `Bearer ${access_token}`;
   }
+  console.log("Request headers:", config.headers); // Debug statement
   return config;
 });
 
@@ -22,49 +23,87 @@ export const login = async (credentials) => {
 
 // Relations CRUD
 export const fetchRelations = async () => {
-  const { data } = await api.get('/relations');
-  return data;
+  try {
+    const { data } = await api.get('/relations'); // Fetch all relations
+    return data;
+  } catch (error) {
+    console.error('Error fetching relations:', error);
+    throw error;
+  }
 };
 
 export const createRelation = async (relation) => {
-  const { data } = await api.post('/relations', relation);
-  return data;
+  try {
+    console.log('Creating relation:', relation); // Debugging line
+    const { data } = await api.post('/relations/add', relation); // Add a new relation
+    return data;
+  } catch (error) {
+    console.error('Error creating relation:', error);
+    throw error;
+  }
 };
 
 export const updateRelation = async (id, relation) => {
-  const { data } = await api.put(`/relations/${id}`, relation);
-  return data;
+  try {
+    const { data } = await api.put(`/relations/${id}`, relation); // Update an existing relation
+    return data;
+  } catch (error) {
+    console.error('Error updating relation:', error);
+    throw error;
+  }
 };
 
 export const deleteRelation = async (id) => {
-  const { data } = await api.delete(`/relations/${id}`);
-  return data;
+  try {
+    const { data } = await api.delete(`/relations/${id}`); // Delete a relation
+    return data;
+  } catch (error) {
+    console.error('Error deleting relation:', error);
+    throw error;
+  }
 };
 
 // Interactions CRUD
 export const fetchInteractions = async (relationId) => {
-  const { data } = await api.get(`/relations/${relationId}/interactions`);
-  return data;
+  try {
+    const { data } = await api.get(`/relations/${relationId}/interactions`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching interactions:', error);
+    throw error;
+  }
 };
 
 export const createInteraction = async (relationId, interaction) => {
-  const { data } = await api.post(`/relations/${relationId}/interactions`, interaction);
-  return data;
+  try {
+    const { data } = await api.post(`/relations/${relationId}/interactions`, interaction);
+    return data;
+  } catch (error) {
+    console.error('Error creating interaction:', error);
+    throw error;
+  }
 };
 
 export const updateInteraction = async (id, interaction) => {
-  const { data } = await api.put(`/interactions/${id}`, interaction);
-  return data;
+  try {
+    console.log('Updating interaction:', interaction); // Debugging line
+    const { data } = await api.patch(`/interactions/${id}`, interaction);
+    return data;
+  } catch (error) {
+    console.error('Error updating interaction:', error);
+    throw error;
+  }
 };
 
 export const deleteInteraction = async (id) => {
-  const { data } = await api.delete(`/interactions/${id}`);
-  return data;
+  try {
+    const { data } = await api.delete(`/interactions/${id}`);
+    return data;
+  } catch (error) {
+    console.error('Error deleting interaction:', error);
+    throw error;
+  }
 };
 
-export const fetchHelloMessage = async () => {
-  const { data } = await api.get('/hello');
-  return data;
-};
 
 export default api;

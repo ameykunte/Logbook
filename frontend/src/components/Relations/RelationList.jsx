@@ -4,42 +4,15 @@ import RelationForm from './RelationForm';
 import InteractionView from '../Interactions/InteractionView';
 import Loader from '../Common/Loader';
 import ErrorAlert from '../Common/ErrorAlert';
+import { fetchRelations, deleteRelation, updateRelation } from '../../services/api';
 
 const RelationList = ({ filterType }) => {
-  const [relations, setRelations] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      relationshipType: 'Friends',
-      city: 'New York',
-      email: 'johndoe@example.com',
-      phoneNumber: '123-456-7890',
-      lastContacted: '2023-04-01',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      relationshipType: 'Colleague',
-      city: 'San Francisco',
-      email: 'janesmith@example.com',
-      phoneNumber: '987-654-3210',
-      lastContacted: '2023-03-15',
-    },
-    {
-      id: 3,
-      name: 'Alice Johnson',
-      relationshipType: 'Family',
-      city: 'Los Angeles',
-      email: 'alicejohnson@example.com',
-      phoneNumber: '555-123-4567',
-      lastContacted: '2023-02-10',
-    },
-  ]); // Example relations
-  const [filteredRelations, setFilteredRelations] = useState(relations); // Filtered relations
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [relations, setRelations] = useState([]); // Fetched relations
+  const [filteredRelations, setFilteredRelations] = useState([]); // Filtered relations
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
   const [showForm, setShowForm] = useState(false);
-  const [editRelation, setEditRelation] = useState(null);
+  const [editRelation, setEditRelation] = useState(null); // Relation being edited
   const [selectedRelation, setSelectedRelation] = useState(null);
   const [showInteractionView, setShowInteractionView] = useState(false);
 
@@ -114,15 +87,69 @@ const RelationList = ({ filterType }) => {
     },
   };
 
+  // Fetch relationships from the database
+  useEffect(() => {
+    const loadRelations = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchRelations();
+        if (data && data.length > 0) {
+          setRelations(data);
+          setFilteredRelations(data); // Initialize filtered relations
+        } else {
+          setRelations([]);
+          setFilteredRelations([]);
+        }
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching relations:', err);
+        setError('Failed to load relationships. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRelations();
+  }, []);
+
+  // Filter relations based on the selected type
+  useEffect(() => {
+    if (filterType) {
+      setFilteredRelations(
+        relations.filter((relation) =>
+          filterType === 'Others'
+            ? !['Friends', 'Family', 'Work'].includes(relation.category_type)
+            : relation.category_type === filterType
+        )
+      );
+    } else {
+      setFilteredRelations(relations); // Show all relations if no filter is selected
+    }
+  }, [filterType, relations]);
+
   const handleCreate = () => {
-    setEditRelation(null);
-    setShowForm(true);
+    setEditRelation(null); // Clear the edit relation
+    setShowForm(true); // Show the form for creating a new relation
   };
 
   const handleFormSuccess = () => {
     setShowForm(false);
-    // Add logic to reload relations if needed
-  };
+    // Reload relations after a successful form submission
+    setLoading(true);
+    fetchRelations()
+    .then((data) => {
+    setRelations(data);
+    setFilteredRelations(data);
+    })
+    .catch((err) => {
+    console.error('Error reloading relations:', err);
+    setError('Failed to reload relationships.');
+    })
+    .finally(() => setLoading(false));
+    };
+    
+    
+  
 
   const handleRelationClick = (relation) => {
     setSelectedRelation(relation);
@@ -134,48 +161,54 @@ const RelationList = ({ filterType }) => {
     setSelectedRelation(null);
   };
 
-  // Filter relations based on the selected type
-  useEffect(() => {
-    if (filterType) {
-      setFilteredRelations(
-        relations.filter((relation) =>
-          filterType === 'Others'
-            ? !['Friends', 'Family', 'Work'].includes(relation.relationshipType)
-            : relation.relationshipType === filterType
-        )
-      );
-    } else {
-      setFilteredRelations(relations); // Show all relations if no filter is selected
+  const handleDelete = async (id) => {
+    try {
+      await deleteRelation(id); // Call the API to delete the relation
+      setRelations((prevRelations) =>
+        prevRelations.filter((relation) => relation.relationship_id !== id)
+      ); // Update the state to remove the deleted relation
+    } catch (error) {
+      console.error('Error deleting relation:', error);
+      alert('Failed to delete the relation. Please try again.');
     }
-  }, [filterType, relations]);
+  };
+
+  const handleEdit = async (relation) => {
+    console.log('Editing relation:', relation);
+    setEditRelation(relation); // Set the relation to be edited
+    setShowForm(true); // Show the edit form
+  };
+
+  // Render loading or error states
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (error) {
+    return <ErrorAlert message={error} />;
+  }
 
   return (
     <div style={styles.container}>
       <div style={styles.listView}>
-        {loading ? (
-          <Loader />
-        ) : error ? (
-          <ErrorAlert message={error} />
-        ) : (
-          <div style={styles.grid}>
-            {/* Add New Contact Box */}
-            <div style={styles.addBox} onClick={handleCreate}>
-              <div style={styles.addSymbol}>+</div>
-              <div style={styles.addText}>Add New Contact</div>
-            </div>
-
-            {/* Filtered Relation Cards */}
-            {filteredRelations.map((relation) => (
-              <RelationCard
-                key={relation.id}
-                relation={relation}
-                onEdit={() => setEditRelation(relation)}
-                onDelete={() => console.log('Delete relation', relation.id)}
-                onClick={() => handleRelationClick(relation)}
-              />
-            ))}
+        <div style={styles.grid}>
+          {/* Add New Contact Box */}
+          <div style={styles.addBox} onClick={handleCreate}>
+            <div style={styles.addSymbol}>+</div>
+            <div style={styles.addText}>Add New Contact</div>
           </div>
-        )}
+
+          {/* Filtered Relation Cards */}
+          {filteredRelations.map((relation) => (
+            <RelationCard
+              key={relation.relationship_id}
+              relation={relation}
+              onEdit={() => handleEdit(relation)} // Pass the handleEdit function
+              onDelete={() => handleDelete(relation.relationship_id)} // Pass the handleDelete function
+              onClick={() => handleRelationClick(relation)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Interaction View */}
@@ -193,9 +226,9 @@ const RelationList = ({ filterType }) => {
         <div style={styles.modal}>
           <div style={styles.modalContent}>
             <RelationForm
-              relation={editRelation}
-              onSuccess={handleFormSuccess}
-              onCancel={() => setShowForm(false)}
+              relation={editRelation} // Pass the relation to be edited
+              onSuccess={handleFormSuccess} // Handle form submission
+              onCancel={() => setShowForm(false)} // Close the form
             />
           </div>
         </div>

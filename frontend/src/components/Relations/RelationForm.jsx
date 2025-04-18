@@ -5,15 +5,10 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
   const isEdit = Boolean(relation);
   const [formData, setFormData] = useState({
     name: '',
-    relationshipType: '',
-    city: '',
-    linkedin: '',
-    instagram: '',
-    email: '',
-    snapchat: '',
-    phoneNumber: '',
-    likes: '',
-    dislikes: ''
+    category_type: '',
+    location: '',
+    email_address: '',
+    phone_number: '',
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,15 +18,10 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
     if (isEdit) {
       setFormData({
         name: relation.name || '',
-        relationshipType: relation.relationshipType || '',
-        city: relation.city || '',
-        linkedin: relation.linkedin || '',
-        instagram: relation.instagram || '',
-        email: relation.email || '',
-        snapchat: relation.snapchat || '',
-        phoneNumber: relation.phoneNumber || '',
-        likes: relation.likes || '',
-        dislikes: relation.dislikes || ''
+        category_type: relation.category_type || '',
+        location: relation.location || '',
+        email_address: relation.email_address || '',
+        phone_number: relation.phone_number || '',
       });
     }
   }, [relation, isEdit]);
@@ -48,7 +38,7 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
     
     try {
       if (isEdit) {
-        await updateRelation(relation.id, formData);
+        await updateRelation(relation.relationship_id, formData);
       } else {
         await createRelation(formData);
       }
@@ -96,8 +86,8 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">Type*</label>
           <select
-            name="relationshipType"
-            value={formData.relationshipType}
+            name="category_type"
+            value={formData.category_type}
             onChange={handleChange}
             required
             className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
@@ -112,8 +102,8 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">City</label>
           <input 
-            name="city" 
-            value={formData.city} 
+            name="location" 
+            value={formData.location} 
             onChange={handleChange}
             className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
           />
@@ -124,8 +114,8 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
             <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
             <input 
               type="email" 
-              name="email" 
-              value={formData.email} 
+              name="email_address" 
+              value={formData.email_address} 
               onChange={handleChange}
               className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
             />
@@ -134,66 +124,12 @@ const RelationForm = ({ relation, onSuccess, onCancel }) => {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
             <input 
-              name="phoneNumber" 
-              value={formData.phoneNumber} 
+              name="phone_number" 
+              value={formData.phone_number} 
               onChange={handleChange}
               className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
             />
           </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">LinkedIn</label>
-            <input 
-              name="linkedin" 
-              value={formData.linkedin} 
-              onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Instagram</label>
-            <input 
-              name="instagram" 
-              value={formData.instagram} 
-              onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Snapchat</label>
-          <input 
-            name="snapchat" 
-            value={formData.snapchat} 
-            onChange={handleChange}
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Likes</label>
-          <textarea
-            name="likes"
-            value={formData.likes}
-            onChange={handleChange}
-            rows={2}
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Dislikes</label>
-          <textarea
-            name="dislikes"
-            value={formData.dislikes}
-            onChange={handleChange}
-            rows={2}
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:border-blue-500"
-          />
         </div>
       </div>
       
