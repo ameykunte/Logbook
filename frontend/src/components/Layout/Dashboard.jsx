@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import RelationList from '../Relations/RelationList';
-import SearchLogs from './SearchLogs'; // Import SearchLogs
+import SearchLogs from './SearchLogs';
+import GoogleCalendarButton from '../GoogleCalendarButton'; // Add this import
 
 const Dashboard = () => {
   const [selectedType, setSelectedType] = useState(null);
@@ -61,9 +62,12 @@ const Dashboard = () => {
           {!showSearch ? (
             <>
               <div style={styles.header}>
-                <h2 style={styles.heading}>
-                  {selectedType ? `${selectedType} Contacts` : 'All Contacts'}
-                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <h2 style={styles.heading}>
+                    {selectedType ? `${selectedType} Contacts` : 'All Contacts'}
+                  </h2>
+                  <GoogleCalendarButton />
+                </div>
               </div>
               <RelationList filterType={selectedType} />
             </>

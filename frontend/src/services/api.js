@@ -7,9 +7,16 @@ const api = axios.create({
 // Attach token to each request
 api.interceptors.request.use((config) => {
   const access_token = localStorage.getItem('access_token');
+  const googleCredentials = localStorage.getItem('googleCredentials');
+  
   if (access_token) {
     config.headers.Authorization = `Bearer ${access_token}`;
   }
+  
+  if (googleCredentials && config.url.includes('/calendar')) {
+    config.headers['Google-Credentials'] = googleCredentials;
+  }
+  
   console.log("Request headers:", config.headers); // Debug statement
   return config;
 });
@@ -105,5 +112,15 @@ export const deleteInteraction = async (id) => {
   }
 };
 
+// Add calendar related API calls
+export const createCalendarEvent = async (eventDetails) => {
+  try {
+    const { data } = await api.post('/api/calendar/events', eventDetails);
+    return data;
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    throw error;
+  }
+};
 
 export default api;

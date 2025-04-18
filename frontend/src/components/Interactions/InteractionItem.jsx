@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-
+import React, { useState, useContext } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../../contexts/AuthContext';
+import { createCalendarEvent } from '../../services/api';
 const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
+  const { googleCredentials } = useContext(AuthContext);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(interaction.content);
@@ -97,6 +100,19 @@ const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
       fontSize: '12px',
       marginBottom: '8px',
     },
+    calendarButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 16px',
+      backgroundColor: '#4285f4',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      transition: 'background-color 0.2s'
+    }
   };
 
   const handleEditClick = () => {
@@ -130,6 +146,38 @@ const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
       setShowDropdown(false);
     } catch (error) {
       console.error('Failed to summarize interaction:', error);
+    }
+  };
+
+  const handleAddToCalendar = async () => {
+    try {
+      if (!googleCredentials) {
+        alert('Please connect Google Calendar first');
+        return;
+      }
+
+      console.log('[Debug] Creating calendar event for interaction:', interaction);
+
+      const eventData = {
+        summary: `Meeting with ${interaction.name || 'Contact'}`,
+        description: interaction.content,
+        start_time: new Date(interaction.timestamp || interaction.date),
+        end_time: new Date(new Date(interaction.timestamp || interaction.date).getTime() + 60 * 60 * 1000), // 1 hour duration
+        location: 'Virtual Meeting',
+        attendees: [] // Optional: Add attendees if needed
+      };
+
+      console.log('[Debug] Event data:', eventData);
+
+      const response = createCalendarEvent(eventData);
+
+      console.log('[Debug] Calendar event created:', response.data);
+      alert('Event added to Google Calendar!');
+      setShowDropdown(false);
+
+    } catch (error) {
+      console.error('[Debug] Failed to add event:', error);
+      alert('Failed to add event to calendar. Please try again.');
     }
   };
 
@@ -202,6 +250,16 @@ const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
             >
               🧠 Summarize
             </button>
+            {googleCredentials && (
+              <button 
+                onClick={handleAddToCalendar} 
+                style={styles.dropdownItem}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                📅 Add to Calendar
+              </button>
+            )}
           </div>
         )}
       </div>
