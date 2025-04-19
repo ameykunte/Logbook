@@ -104,36 +104,42 @@ async def summarize_file(file_content: bytes, file_name: Optional[str] = None) -
             os.remove(temp_file_path)
 # Add this function to gemini.py
 
-async def summarize_daily_interactions(texts: str) -> str:
+async def summarize_daily_interactions(interactions):
     """
-    Use Gemini to create a daily summary from today's interactions
+    Summarize a list of interactions from today using Gemini
     """
-    if not texts or len(texts.strip()) == 0:
-        return "No interactions recorded today."
-    
     try:
-        prompt = f"""
-        Please provide a concise daily summary of the following interactions that happened today.
-        Focus on:
-        - Key people mentioned
-        - Main topics discussed
-        - Important action items or follow-ups
-        - Overall themes of today's conversations
+        if not interactions:
+            return "No interactions recorded today."
         
-        Format the summary in a clear, easy-to-read way:
-
-        {texts}
+        # Format interactions with relation names
+        formatted_interactions = []
+        for interaction in interactions:
+            relation_name = interaction.relationName
+            relation_category = interaction.relationCategory if hasattr(interaction, "relationCategory") else ""
+            content = interaction.content
+            date = interaction.date
+            
+            formatted_text = f"Interaction with {relation_name} ({relation_category}) on {date}:\n{content}\n\n"
+            formatted_interactions.append(formatted_text)
+        
+        # Join all interactions into one text
+        all_interactions_text = "\n".join(formatted_interactions)
+        
+        # Prepare prompt for Gemini
+        prompt = f"""
+        Please provide a concise daily summary of the following interactions. 
+        Group insights by relationship and highlight key points, action items, and follow-ups needed:
+        
+        {all_interactions_text}
         """
         
-        response = model.generate_content(prompt)
+        # Call Gemini API to generate summary
+        model = genai.GenerativeModel("gemini-1.5-pro")
+        response = await model.generate_content_async(prompt)
         summary = response.text
         
-        # Return a default message if summary is empty
-        if not summary or len(summary.strip()) == 0:
-            return "No meaningful summary could be generated for today's interactions."
-        
         return summary
-    
     except Exception as e:
-        print(f"Error generating daily summary with Gemini: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate daily summary: {str(e)}")
+        print(f"Error in summarize_daily_interactions: {str(e)}")
+        raise

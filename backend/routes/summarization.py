@@ -1,6 +1,6 @@
 # routes/summarization.py
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
-from typing import Optional
+from typing import List,Optional
 import sys
 import os
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ sys.path.append(os.getenv('HOME_PATH'))
 
 from services.gemini import summarize_text, summarize_file, summarize_daily_interactions
 from routes.auth import verify_jwt_token
+from pydantic import BaseModel
 
 summarization_router = APIRouter()
 
@@ -43,18 +44,28 @@ async def summarize_file_endpoint(
 
 
 
+
+class InteractionModel(BaseModel):
+    content: str
+    date: str
+    relationName: str
+    relationCategory: Optional[str] = ""
+    # Add other fields as needed
+
+class InteractionsPayload(BaseModel):
+    interactions: List[InteractionModel]
+
 @summarization_router.post("/daily")
 async def summarize_daily_interactions_endpoint(
-    text: str = Form(...),
+    payload: InteractionsPayload,
     token: dict = Depends(verify_jwt_token)
 ):
     """
     Endpoint to summarize today's interactions using Gemini API
     """
-    print("HIIIIIIIIIIIIIIIIIIIIIIIIIII")
     try:
-        summary = await summarize_daily_interactions(text)
-        print(summary)
+        # Pass the interactions list to the Gemini service
+        summary = await summarize_daily_interactions(payload.interactions)
         return {"summary": summary}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Daily summarization failed: {str(e)}")

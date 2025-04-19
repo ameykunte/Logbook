@@ -202,7 +202,6 @@ export const fetchAllInteractionsForToday = async () => {
     // Get today's date in ISO format (YYYY-MM-DD)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayISOString = today.toISOString();
     
     // Fetch all relationships first
     const relationships = await fetchRelations();
@@ -219,7 +218,12 @@ export const fetchAllInteractionsForToday = async () => {
       return interactions.filter(interaction => {
         const interactionDate = new Date(interaction.date);
         return interactionDate >= today;
-      });
+      })
+      .map(interaction => ({
+        ...interaction,
+        relationName: relationship.name,
+        relationCategory: relationship.category_type
+      }));
     });
     
     // Combine all interactions from all relationships
@@ -233,12 +237,11 @@ export const fetchAllInteractionsForToday = async () => {
 };
 
 // Send all today's interactions to Gemini for summarization
-export const summarizeDailyInteractions = async (textContent) => {
+export const summarizeDailyInteractions = async (interactions) => {
   try {
-    const formData = new FormData();
-    formData.append('text', textContent);
-
-    const { data } = await api.post('/summarize/daily', formData);
+    // Send the structured interactions data in JSON format
+    console.log('Sending interactions for summarization:', interactions);
+    const { data } = await api.post('/summarize/daily', { interactions });
     return data.summary;
   } catch (error) {
     console.error('Error summarizing daily interactions:', error);
