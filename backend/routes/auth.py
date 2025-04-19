@@ -12,6 +12,9 @@ from dao.user_dao import UserDAO
 from models.User import UserStatus
 from services.google_calendar import GoogleCalendar
 import json
+from core.limiter import limiter
+from starlette.requests import Request
+
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
@@ -46,14 +49,21 @@ def create_jwt_token(user_id: str, email: str):
     return token
 
 @auth_router.post("/login")
-async def login(request: LoginRequest):
+async def login(request: Request, login_data: LoginRequest):
+    # Apply rate limiting to the request
+    @limiter.limit("5/minute")
+    def rate_limit_login(request: Request):
+        return True
+    
+    # Check the rate limit
+    rate_limit_login(request)
     try:
-        user = user_dao.get_user_by_email(request.email)
+        user = user_dao.get_user_by_email(login_data.email)
         
         if not user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        if not bcrypt.checkpw(request.password.encode(), user.password_hash.encode()):
+        if not bcrypt.checkpw(login_data.password.encode(), user.password_hash.encode()):
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
         user_dao.update_user_last_login(user.user_id)
@@ -77,16 +87,26 @@ async def login(request: LoginRequest):
         raise HTTPException(status_code=401, detail=str(e))
 
 @auth_router.post("/signup")
-async def signup(request: SignUpRequest):
+async def signup(request: Request, signup_data: SignUpRequest):
+    """
+    Rate limited signup endpoint
+    """
+    # Apply rate limiting to the request
+    @limiter.limit("5/minute")
+    def rate_limit_signup(request: Request):
+        return True
+    
+    # Check the rate limit
+    rate_limit_signup(request)
     try:
-        if user_dao.check_email_exists(request.email):
+        if user_dao.check_email_exists(signup_data.email):
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        hashed_password = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+        hashed_password = bcrypt.hashpw(signup_data.password.encode(), bcrypt.gensalt()).decode()
         
         new_user = {
-            "name": request.name,
-            "email": request.email,
+            "name": signup_data.name,
+            "email": signup_data.email,
             "password_hash": hashed_password,
             "last_login": datetime.now().isoformat(),
             "status": UserStatus.ACTIVE.value

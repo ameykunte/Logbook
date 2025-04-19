@@ -1,49 +1,71 @@
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 import os
 import sys
 from dotenv import load_dotenv
 load_dotenv()
-sys.path.append(os.getenv('HOME_PATH'))
+sys.path.append(os.getenv('HOME_PATH', '.')) # Added default '.' for safety
 from services.llm import generate_response
 from services.connect_db import supabase
 from services.embeddings import get_embeddings
 from routes.auth import verify_jwt_token
-from typing import Optional, Dict, Any
+from typing import Optional, List, Dict, Any
 from abc import ABC, abstractmethod
+
+# Import run_in_threadpool for running sync blocking code efficiently
+from fastapi.concurrency import run_in_threadpool
+from core.limiter import limiter
+from starlette.requests import Request
 
 search_router = APIRouter()
 
+
 class SearchStrategy(ABC):
     @abstractmethod
-    def execute(
-        self, 
+    async def execute(
+        self,
         query_text: str,
         user_id: str,
         match_count: int,
-        query_embedding: Optional[list] = None
+        **kwargs # Accept potential query_embedding and other params
     ) -> list:
         pass
 
-# Concrete Strategies
 class KeywordSearchStrategy(SearchStrategy):
-    def execute(self, query_text, user_id, match_count, **kwargs):
-        return supabase.rpc('keyword_search', {
-            'query_text': query_text,
-            'user_id': user_id,
-            'match_count': match_count
-        }).execute().data
+    async def execute(self, query_text, user_id, match_count, **kwargs):
+        try:
+            response = await run_in_threadpool(
+                supabase.rpc('keyword_search', {
+                    'query_text': query_text,
+                    'user_id': user_id,
+                    'match_count': match_count
+                }).execute
+            )
+            return response.data
+        except Exception as e:
+            print(f"[ERROR] Keyword search failed: {e}", file=sys.stderr)
+            raise HTTPException(status_code=500, detail="Keyword search failed")
 
 class SemanticSearchStrategy(SearchStrategy):
-    def execute(self, query_text, user_id, match_count, query_embedding, **kwargs):
-        return supabase.rpc('semantic_search', {
-            'query_embedding': query_embedding,
-            'user_id': user_id,
-            'match_count': match_count
-        }).execute().data
+    async def execute(self, query_text, user_id, match_count, query_embedding, **kwargs):
+        if query_embedding is None:
+             raise ValueError("Semantic search requires query_embedding.")
+        try:
+            response = await run_in_threadpool(
+                 supabase.rpc('semantic_search', {
+                    'query_embedding': query_embedding,
+                    'user_id': user_id,
+                    'match_count': match_count,
+                }).execute
+            )
+            return response.data
+        except Exception as e:
+            print(f"[ERROR] Semantic search failed: {e}", file=sys.stderr)
+            raise HTTPException(status_code=500, detail="Semantic search failed")
 
 class HybridSearchStrategy(SearchStrategy):
-    def execute(
+    async def execute(
         self,
         query_text,
         user_id,
@@ -51,18 +73,27 @@ class HybridSearchStrategy(SearchStrategy):
         query_embedding,
         full_text_weight=0.6,
         semantic_weight=0.4,
-        **kwargs
+        **kwargs 
     ):
-        return supabase.rpc('hybrid_search', {
-            'query_text': query_text,
-            'query_embedding': query_embedding,
-            'user_id': user_id,
-            'match_count': match_count,
-            'full_text_weight': full_text_weight,
-            'semantic_weight': semantic_weight
-        }).execute().data
+        if query_embedding is None:
+             raise ValueError("Hybrid search requires query_embedding.")
+        try:
+            response = await run_in_threadpool(
+                supabase.rpc('hybrid_search', {
+                    'query_text': query_text,
+                    'query_embedding': query_embedding,
+                    'user_id': user_id,
+                    'match_count': match_count,
+                    'full_text_weight': full_text_weight,
+                    'semantic_weight': semantic_weight
+                }).execute
+            )
+            return response.data
+        except Exception as e:
+            print(f"[ERROR] Hybrid search failed: {e}", file=sys.stderr)
+            raise HTTPException(status_code=500, detail="Hybrid search failed")
 
-# Strategy Factory
+# --- Strategy Factory ---
 class SearchStrategyFactory:
     _strategies = {
         'keyword': KeywordSearchStrategy(),
@@ -77,76 +108,100 @@ class SearchStrategyFactory:
             raise ValueError(f"Invalid search type: {search_type}")
         return strategy
 
-# Updated Search Request Model
+# --- Request Model ---
 class SearchRequest(BaseModel):
     query: str
     search_type: str = "hybrid"
     match_count: int = 15
-    params: Optional[Dict[str, Any]] = None  # Additional strategy-specific params
+    params: Optional[Dict[str, Any]] = None
 
-# Updated Search Endpoint
+# --- Search Endpoint ---
 @search_router.post("/search")
 async def search(
-    request: SearchRequest, 
+    request: Request,
+    search_data: SearchRequest,
     token: dict = Depends(verify_jwt_token)
 ):
+    @limiter.limit("10/minute")
+    def rate_limit_search(request: Request):
+        return True
+    rate_limit_search(request)
+    
     try:
         user_id = token["user_id"]
-        strategy = SearchStrategyFactory.get_strategy(request.search_type)
-        
-        # Generate embedding only if needed
-        query_embedding = None
-        if request.search_type in ['semantic', 'hybrid']:
-            query_embedding = get_embeddings(request.query)
-            if hasattr(query_embedding, "tolist"):
-                query_embedding = query_embedding.tolist()
+        strategy = SearchStrategyFactory.get_strategy(search_data.search_type)
+        strategy_params = search_data.params or {}
 
-        # Execute strategy with parameters
-        result_data = strategy.execute(
-            query_text=request.query,
+        # --- Handle Embeddings (CPU Bound) ---
+        query_embedding = None
+        if search_data.search_type in ['semantic', 'hybrid']:
+            try:
+                query_embedding = await run_in_threadpool(get_embeddings, search_data.query)
+            except Exception as e:
+                print(f"[ERROR] Failed to get embeddings: {e}", file=sys.stderr)
+                raise HTTPException(status_code=500, detail="Failed to generate query embeddings")
+
+        result_data = await strategy.execute(
+            query_text=search_data.query,
             user_id=user_id,
-            match_count=request.match_count,
+            match_count=search_data.match_count,
             query_embedding=query_embedding,
-            **(request.params or {})
+            **strategy_params
         )
 
-        # Process results
-        if request.search_type == 'hybrid':
-            sorted_results = sorted(result_data, key=lambda r: r['hybrid_score'], reverse=True)
-        if request.search_type == 'keyword':
-            sorted_results = sorted(result_data, key=lambda r: r['search_score'], reverse=True)
-        if request.search_type == 'semantic':
-            sorted_results = sorted(result_data, key=lambda r: r['semantic_score'], reverse=True)
-        sorted_results = sorted_results[:request.match_count]
-        
-        # Generate LLM response
+        if not isinstance(result_data, list):
+             print(f"[WARNING] Search strategy returned non-list data: {type(result_data)}", file=sys.stderr)
+             result_data = [] 
+             
+        score_key = 'hybrid_score' if search_data.search_type == 'hybrid' else \
+                    'search_score' if search_data.search_type == 'keyword' else \
+                    'semantic_score'
+
+        sorted_results = sorted(
+            result_data,
+            key=lambda r: r.get(score_key, 0.0),
+            reverse=True
+        )
+        sorted_results = sorted_results[:search_data.match_count]
+
+        # --- Generate LLM Response (Sync Network I/O) ---
         llm_answer = None
         if sorted_results:
-            system_prompt = "You are a helpful assistant. Answer the user's question based on the provided interactions. Don't answer like 'based on the interactions/information', just answer the question directly."
-            context = "\n".join([f"{r['date']}: {r['content']} (with {r['name']})" for r in sorted_results[:5]])
-            print(f"[DEBUG] LLM context: {context}")
-            response = generate_response(
-                f" Instructions:\n{system_prompt}\n\nContext:\n{context}\n\nQuestion: {request.query}"
-            )
-            llm_answer = response
+            try:
+                system_prompt = "You are a helpful assistant. Answer the user's question based on the provided interactions. Don't answer like 'based on the interactions/information', just answer the question directly."
+                context = "\n".join([f"{r.get('date', 'Unknown Date')}: {r.get('content', '')} (with {r.get('name', 'Unknown Name')})" for r in sorted_results[:5]]) # Limit to top 5 for context
 
+                llm_prompt = f"Instructions:\n{system_prompt}\n\nContext:\n{context}\n\nQuestion: {search_data.query}"
+                print(f"[DEBUG] LLM prompt generated (length: {len(llm_prompt)})") # Avoid printing full context/prompt
+
+                llm_answer = await run_in_threadpool(generate_response, llm_prompt)
+
+            except HTTPException as e:
+                 # Re-raise HTTP exceptions (like rate limiting from generate_response)
+                 raise e
+            except Exception as e:
+                # Log error but don't fail the whole search if LLM fails
+                print(f"[ERROR] Failed to generate LLM summary: {e}", file=sys.stderr)
+                llm_answer = "Error generating summary." # Indicate LLM failure
+
+        # --- Format Final Response ---
         return {
             "results": [{
-                "name": r["name"],
-                "date": r["date"],
-                "content": r["content"],
-                "score": (
-                    r.get('hybrid_score')
-                    if request.search_type == 'hybrid' else
-                    r.get('search_score')
-                    if request.search_type == 'keyword' else
-                    r.get('semantic_score', 0.0)
-                )
+                "name": r.get("name"),
+                "date": r.get("date"),
+                "content": r.get("content"),
+                "score": r.get(score_key, 0.0) # Use safe access
             } for r in sorted_results],
             "llm_answer": llm_answer,
             "count": len(sorted_results)
         }
-        
+
+    except ValueError as e: # Catch specific errors like invalid search type
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException as e:
+        # Re-raise known HTTP exceptions
+        raise e
     except Exception as e:
-        print(f"[ERROR] Exception in search: {e}", file=sys.stderr)
-        raise HTTPException(500, str(e))
+        # Catch-all for unexpected errors
+        print(f"[ERROR] Unexpected error in search endpoint: {e}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")

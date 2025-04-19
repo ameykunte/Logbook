@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { createCalendarEvent, extractEventsFromInteraction, addExtractedEventToCalendar } from '../../services/api';
-import Modal from '../common/Modal'; // Create this component if not exists
+import Modal from '../Common/Modal'; // Create this component if not exists
 
 const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
   const { googleCredentials } = useContext(AuthContext);
