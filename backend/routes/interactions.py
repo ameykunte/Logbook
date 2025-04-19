@@ -11,7 +11,6 @@ load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 # from services.connect_db import supabase
 from services.embeddings import get_embeddings
-from services.gemini import summarize_text, summarize_file
 from routes.auth import verify_jwt_token
 import numpy as np
 from dao.log_dao import LogDAO as LogDao

@@ -3,9 +3,7 @@ import tempfile
 from typing import Optional
 from fastapi import HTTPException
 import google.generativeai as genai
-from PIL import Image
-from PyPDF2 import PdfReader
-import pytesseract
+from services.FileSummarizerFactory import FileSummarizerFactory    
 
 # Initialize Gemini API with your API key
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -15,33 +13,6 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash')
 
-async def summarize_text(text: str) -> str:
-    """
-    Use Gemini to summarize text content
-    """
-    if not text or len(text.strip()) == 0:
-        return ""
-    
-    try:
-        prompt = f"""
-        Please provide a concise summary of the following text. Focus on key points, 
-        main ideas, and important details while maintaining the original meaning:
-        
-        {text}
-        """
-        
-        response = model.generate_content(prompt)
-        summary = response.text
-        
-        # Return a default message if summary is empty
-        if not summary or len(summary.strip()) == 0:
-            return "No meaningful summary could be generated."
-        
-        return summary
-    
-    except Exception as e:
-        print(f"Error summarizing text with Gemini: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to summarize text: {str(e)}")
 
 async def summarize_file(file_content: bytes, file_name: Optional[str] = None) -> str:
     """
@@ -57,52 +28,14 @@ async def summarize_file(file_content: bytes, file_name: Optional[str] = None) -
             temp_file.write(file_content)
             temp_file_path = temp_file.name
         
-        # Determine file type and process accordingly
-        if file_name and file_name.lower().endswith('.pdf'):
-            # Handle PDF files
-            try:
-                reader = PdfReader(temp_file_path)
-                text_content = ""
-                for page in reader.pages:
-                    text_content += page.extract_text() or ""
-                
-                if not text_content.strip():
-                    return "The PDF contains no extractable text."
-                
-                return await summarize_text(text_content)
-            except Exception as e:
-                print(f"Error summarizing PDF: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to summarize PDF: {str(e)}")
-        
-        elif file_name and file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-            print(f"[DEBUG] Summarizing image file: {file_name}")
-            # Handle image files
-            try:
-                image = Image.open(temp_file_path)
-                text_content = pytesseract.image_to_string(image)
-                
-                if not text_content.strip():
-                    return "The image contains no recognizable text."
-                
-                return await summarize_text(text_content)
-            except Exception as e:
-                print(f"Error summarizing image: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to summarize image: {str(e)}")
-        
-        else:
-            # Assume it's a text file
-            try:
-                with open(temp_file_path, 'r', encoding='utf-8') as f:
-                    text_content = f.read()
-                return await summarize_text(text_content)
-            except UnicodeDecodeError:
-                return f"Summary of file {file_name or 'uploaded document'}: This appears to be a non-text file which cannot be directly summarized."
-        
+        # Get the appropriate summarizer using the factory
+        summarizer = FileSummarizerFactory.get_summarizer(file_name)
+        return await summarizer.summarize(temp_file_path)
+    
     finally:
         # Clean up the temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-# Add this function to gemini.py
 
 async def summarize_daily_interactions(interactions):
     """
