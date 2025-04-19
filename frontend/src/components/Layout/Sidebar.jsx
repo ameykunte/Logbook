@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 // Relationship types
 const types = ['Work', 'Family', 'Friends', 'Others'];
 
-const Sidebar = ({ onSelectType, onSearch }) => {
+const Sidebar = ({ onSelectType, onSearch, onDailySummary }) => {
   const [selected, setSelected] = useState(null);
 
   const styles = {
@@ -15,7 +15,7 @@ const Sidebar = ({ onSelectType, onSearch }) => {
       height: '100vh', // Make sidebar take full height
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between' // Space between content and button
+      justifyContent: 'space-between' // Space between content and buttons
     },
     heading: {
       fontSize: '18px',
@@ -40,15 +40,27 @@ const Sidebar = ({ onSelectType, onSearch }) => {
       backgroundColor: '#0D47A1',
       color: 'white'
     },
-    Search: {
-      marginTop: '0', // Remove margin top
+    buttonsContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px'
+    },
+    button: {
       padding: '10px 16px',
       backgroundColor: '#1976D2',
       color: 'white',
       border: 'none',
       borderRadius: '4px',
       fontSize: '16px',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      transition: 'background-color 0.3s ease'
+    },
+    dailySummaryButton: {
+      backgroundColor: '#673AB7',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     }
   };
 
@@ -68,6 +80,11 @@ const Sidebar = ({ onSelectType, onSearch }) => {
 
   const handleSearchClick = () => {
     if (onSearch) onSearch();
+  };
+
+  const handleDailySummaryClick = () => {
+    console.log("Daily summary button clicked"); 
+    if (onDailySummary) onDailySummary();
   };
 
   return (
@@ -98,12 +115,20 @@ const Sidebar = ({ onSelectType, onSearch }) => {
           ))}
         </ul>
       </div>
-      <button 
-        style={styles.Search}
-        onClick={handleSearchClick}
-      >
-        Search
-      </button>
+      <div style={styles.buttonsContainer}>
+        <button 
+          style={{...styles.button, ...styles.dailySummaryButton}}
+          onClick={handleDailySummaryClick}
+        >
+          <span>✨</span> Daily Summary
+        </button>
+        <button 
+          style={styles.button}
+          onClick={handleSearchClick}
+        >
+          Search
+        </button>
+      </div>
     </aside>
   );
 };

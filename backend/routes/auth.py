@@ -4,14 +4,14 @@ import datetime
 import bcrypt
 import jwt
 from datetime import datetime, timedelta
-
 import os
 import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
+from services.google_calendar import GoogleCalendarService
 from services.connect_db import supabase
-
+import json
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
@@ -61,12 +61,17 @@ async def login(request: LoginRequest):
         
         access_token = create_jwt_token(user["user_id"], user["email"])
         
+        # Add Google Calendar auth URL
+        calendar_service = GoogleCalendarService()
+        google_auth_url = calendar_service.get_auth_url(user["user_id"])
+        
         return {
             "message": "Login successful", 
             "access_token": access_token,
             "token_type": "bearer",
             "user_id": user["user_id"],
-            "user_name": user["name"]
+            "user_name": user["name"],
+            "google_auth_url": google_auth_url  # Add this
         }
     
     except Exception as e:
@@ -98,19 +103,24 @@ async def signup(request: SignUpRequest):
         user_data = response.data[0]
         access_token = create_jwt_token(user_data["user_id"], user_data["email"])
         
+        # Add Google Calendar auth URL
+        calendar_service = GoogleCalendarService()
+        google_auth_url = calendar_service.get_auth_url(user_data["user_id"])
+        
         return {
             "message": "User created successfully", 
             "access_token": access_token,
             "token_type": "bearer",
             "user_id": user_data["user_id"],
-            "email": user_data["email"]
+            "email": user_data["email"],
+            "google_auth_url": google_auth_url  # Add this
         }
     
     except Exception as e:
         print("Error:", e)
         raise HTTPException(status_code=400, detail=str(e))
 
-def verify_jwt_token(authorization: str = Header(...)):
+def verify_jwt_token(authorization: str = Header(..., alias="Authorization")):
     """
     Verify the JWT token from the Authorization header.
     """
@@ -128,3 +138,14 @@ def verify_jwt_token(authorization: str = Header(...)):
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+async def get_google_credentials(
+    google_credentials: str = Header(..., alias="Google-Credentials")
+) -> dict:
+    try:
+        return json.loads(google_credentials)
+    except:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Google credentials"
+        )

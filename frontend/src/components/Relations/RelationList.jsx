@@ -21,6 +21,7 @@ const RelationList = ({ filterType }) => {
       display: 'flex',
       height: '100vh',
       overflow: 'hidden',
+      // backgroundColor: 'white',
     },
     listView: {
       flex: showInteractionView ? '0 0 320px' : 1,
@@ -28,6 +29,8 @@ const RelationList = ({ filterType }) => {
       padding: '16px',
       transition: 'flex 0.3s ease',
       backgroundColor: '#121212',
+      scrollbarWidth: 'none', // Hide scrollbar in Firefox
+  msOverflowStyle: 'none', 
     },
     interactionView: {
       flex: '1',
