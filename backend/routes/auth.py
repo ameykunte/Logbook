@@ -9,9 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 from dao.user_dao import UserDAO
-from services.google_calendar import GoogleCalendarService
-from models.User import User, UserStatus
-from uuid import uuid4
+from models.User import UserStatus
+from services.google_calendar import GoogleCalendar
 import json
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -62,7 +61,7 @@ async def login(request: LoginRequest):
         access_token = create_jwt_token(str(user.user_id), user.email)
         
         # Add Google Calendar auth URL
-        calendar_service = GoogleCalendarService()
+        calendar_service = GoogleCalendar()
         google_auth_url = calendar_service.get_auth_url(str(user.user_id))
         
         return {
@@ -97,7 +96,7 @@ async def signup(request: SignUpRequest):
         access_token = create_jwt_token(str(created_user.user_id), created_user.email)
         
         # Add Google Calendar auth URL
-        calendar_service = GoogleCalendarService()
+        calendar_service = GoogleCalendar()
         google_auth_url = calendar_service.get_auth_url(str(created_user.user_id))
         
         return {

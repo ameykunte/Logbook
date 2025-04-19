@@ -13,7 +13,7 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
-from services.google_calendar import GoogleCalendarService
+from services.google_calendar import GoogleCalendar
 from services.connect_db import supabase
 from services.event_extractor import extract_events_from_interaction
 
@@ -72,20 +72,20 @@ async def create_event(
     token: dict = Depends(verify_jwt_token)
 ):
     try:
-        calendar_service = GoogleCalendarService()
+        google_calendar = GoogleCalendar()
         event_body = {
             'summary': event.summary,
             'description': event.description,
             'start': {
                 'dateTime': event.start_time.isoformat(),
-                'timeZone': 'UTC',
+                'timeZone': 'IST',
             },
             'end': {
                 'dateTime': event.end_time.isoformat(),
-                'timeZone': 'UTC',
+                'timeZone': 'IST',
             }
         }
-        return calendar_service.create_event(google_credentials, event_body)
+        return google_calendar.create_event(google_credentials, event_body)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -104,14 +104,11 @@ async def delete_event(event_id: str, token: dict = Depends(verify_jwt_token)):
 
 @calendar_router.get("/auth-url")
 async def get_google_auth_url(token: dict = Depends(verify_jwt_token)):
-    print("[Debug] Getting auth URL for user_id:", token["user_id"])
     try:
-        calendar_service = GoogleCalendarService()
-        auth_url = calendar_service.get_auth_url(token["user_id"])
-        print("[Debug] Generated auth URL:", auth_url)
+        google_calendar = GoogleCalendar()
+        auth_url = google_calendar.get_auth_url(token["user_id"])
         return {"auth_url": auth_url}
     except Exception as e:
-        print("[Debug] Error generating auth URL:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @calendar_router.get("/oauth-callback")
@@ -120,47 +117,30 @@ async def google_oauth_callback(
     state: str,
     request: Request
 ):
-    print("[Debug] Received OAuth callback - code:", code, "state:", state)
     try:
-        calendar_service = GoogleCalendarService()
-        credentials = calendar_service.get_credentials_from_code(code, state)
-        print("[Debug] Got credentials from code")
-        
-        # Modified HTML content with better debugging and error handling
-        html_content = """
+        google_calendar = GoogleCalendar()
+        credentials = google_calendar.get_credentials_from_code(code, state)
+        html_content = f"""
             <html>
                 <body>
                     <script>
-                        try {
-                            console.log('[Debug] Callback page loaded, preparing to send message');
-                            const message = {
-                                type: 'GOOGLE_AUTH',
-                                code: '%s',
-                                state: '%s',
-                                credentials: %s
-                            };
-                            console.log('[Debug] Message to send:', message);
-                            
-                            if (window.opener) {
-                                window.opener.postMessage(message, '*');  // Using * for development
-                                console.log('[Debug] Message sent to opener');
-                                setTimeout(() => window.close(), 1000);  // Delay closure
-                            } else {
-                                console.error('[Debug] No opener window found');
-                            }
-                        } catch (error) {
-                            console.error('[Debug] Error in callback:', error);
-                        }
+                        const message = {{
+                            type: 'GOOGLE_AUTH',
+                            code: '{code}',
+                            state: '{state}',
+                            credentials: {json.dumps(credentials)}
+                        }};
+                        if (window.opener) {{
+                            window.opener.postMessage(message, '*');
+                            setTimeout(() => window.close(), 1000);
+                        }}
                     </script>
                     <p>Authentication successful! You can close this window.</p>
                 </body>
             </html>
-        """ % (code, state, json.dumps(credentials))
-        
+        """
         return HTMLResponse(content=html_content)
-        
     except Exception as e:
-        print("[Debug] Error in OAuth callback:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @calendar_router.post("/extract-events")
@@ -240,11 +220,11 @@ async def add_extracted_event(
             'description': event.get('description', ''),
             'start': {
                 'dateTime': event['start_time'],
-                'timeZone': 'UTC',
+                'timeZone': 'IST',
             },
             'end': {
                 'dateTime': event.get('end_time', event['start_time']),
-                'timeZone': 'UTC',
+                'timeZone': 'IST',
             },
             'location': event.get('location', '')
         }
@@ -262,7 +242,7 @@ async def add_extracted_event(
 
         print(f"[DEBUG] Final event body: {event_body}")
         
-        calendar_service = GoogleCalendarService()
+        calendar_service = GoogleCalendar()
         result = calendar_service.create_event(google_credentials, event_body)
         print(f"[DEBUG] Event created successfully: {result}")
         return result

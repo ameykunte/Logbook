@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 from datetime import datetime
 import numpy as np
+from pytz import timezone
 
 import os
 import sys
@@ -175,9 +176,16 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         # Check if the relationship exists and belongs to the user
         relationshipDao = RelationshipDAO()
         relationship_response = relationshipDao.get_by_id(relationship_id, user_id)
-        # relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not relationship_response.data:
             raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
+
+        # Convert the date to IST timezone
+        ist = timezone("Asia/Kolkata")
+        if isinstance(log_request.date, datetime):
+            date_in_ist = log_request.date.astimezone(ist)
+        else:
+            # If the date is a string, parse it and convert to IST
+            date_in_ist = datetime.fromisoformat(log_request.date).astimezone(ist)
 
         # Get embeddings first
         embeddings = get_embeddings(log_request.content)
@@ -185,7 +193,7 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         # Create the new log entry
         new_log = {
             "content": log_request.content,
-            "date": log_request.date.isoformat() if isinstance(log_request.date, datetime) else log_request.date,
+            "date": date_in_ist.isoformat(),  # Ensure the date is in ISO format with IST timezone
             "relationship_id": relationship_id,
             "embeddings": embeddings,
             # fts will be handled by Supabase trigger/function
@@ -194,7 +202,6 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         # Insert the log into the "logs" table
         logDao = LogDAO()
         response = logDao.create(new_log)
-        # response = supabase.table("logs").insert(new_log).execute()
         if not response.data:
             raise HTTPException(status_code=500, detail="Failed to add interaction")
 

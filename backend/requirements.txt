@@ -22,3 +22,6 @@ google-auth-httplib2>=0.1.0
 httplib2>=0.20.0
 PyPDF2>=3.0.0
 pytesseract>=0.3.10
+
+# Timezone support
+pytz>=2023.3

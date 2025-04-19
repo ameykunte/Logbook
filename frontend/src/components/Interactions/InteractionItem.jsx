@@ -332,26 +332,16 @@ const InteractionItem = ({ interaction, onEdit, onDelete, onSummarize }) => {
               >
                 🧠 Summarize
               </button>
-              {googleCredentials && (
-                <button 
-                  onClick={handleAddToCalendar} 
-                  style={styles.dropdownItem}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                >
-                  📅 Add to Calendar
-                </button>
-              )}
             </div>
           )}
         </div>
-        <button 
+        {googleCredentials && (<button 
           onClick={handleShowEvents}
           style={styles.showEventsButton}
           disabled={isLoading}
         >
           {isLoading ? 'Extracting Events...' : '🔍 Show Events'}
-        </button>
+        </button>)}
       </div>
 
       {showEventsModal && (
