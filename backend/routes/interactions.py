@@ -9,11 +9,12 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
-from services.connect_db import supabase
+# from services.connect_db import supabase
 from services.embeddings import get_embeddings
 from routes.auth import verify_jwt_token
 import numpy as np
-import numpy as np
+from dao.log_dao import LogDAO as LogDao
+from dao.relationship_dao import RelationshipDAO as RelationDao
 
 interactions_router = APIRouter()
 
@@ -81,15 +82,18 @@ async def create_interaction(
         user_id = token["user_id"]
         
         # Check if the relationship belongs to the user
-        relationship_response = (
-            supabase
-            .from_("relationships")
-            .select("relationship_id")
-            .eq("user_id", user_id)
-            .eq("relationship_id", relationship_id)
-            .single()
-            .execute()
-        )
+        # relationship_response = (
+        #     supabase
+        #     .from_("relationships")
+        #     .select("relationship_id")
+        #     .eq("user_id", user_id)
+        #     .eq("relationship_id", relationship_id)
+        #     .single()
+        #     .execute()
+        # )
+
+        relationDao = RelationDao()
+        relationship_response = relationDao.get_by_id(relationship_id, user_id)
         
         if not relationship_response.data:
             raise HTTPException(status_code=403, detail="Unauthorized: Relationship does not belong to user")
@@ -107,12 +111,15 @@ async def create_interaction(
         }
         
         # Insert into database
-        insert_response = (
-            supabase
-            .from_("logs")
-            .insert(new_log)
-            .execute()
-        )
+        # insert_response = (
+        #     supabase
+        #     .from_("logs")
+        #     .insert(new_log)
+        #     .execute()
+        # )
+
+        logDao = LogDao()
+        insert_response = logDao.insert(new_log)
         
         if not insert_response.data:
             raise HTTPException(status_code=500, detail="Failed to create log")
@@ -129,15 +136,18 @@ async def update_interactions(interaction_id: str, interaction: LogRequest, toke
         user_id = token["user_id"]
 
         # Step 1: Check if the relationship_id belongs to the user
-        relationship_response = (
-            supabase
-            .from_("relationships")
-            .select("relationship_id")
-            .eq("user_id", user_id)
-            .eq("relationship_id", interaction.relationship_id)
-            .single()
-            .execute()
-        )
+        # relationship_response = (
+        #     supabase
+        #     .from_("relationships")
+        #     .select("relationship_id")
+        #     .eq("user_id", user_id)
+        #     .eq("relationship_id", interaction.relationship_id)
+        #     .single()
+        #     .execute()
+        # )
+
+        relationDao = RelationDao()
+        relationship_response = relationDao.get_by_id(interaction.relationship_id, user_id)
 
         if not relationship_response.data:
             raise HTTPException(status_code=403, detail="Unauthorized: Relationship does not belong to user")
@@ -154,13 +164,16 @@ async def update_interactions(interaction_id: str, interaction: LogRequest, toke
             update_data["date"] = interaction.date.isoformat()
 
         # Step 2: Update the log
-        update_response = (
-            supabase
-            .from_("logs")
-            .update(update_data)
-            .eq("log_id", interaction_id)
-            .execute()
-        )
+        # update_response = (
+        #     supabase
+        #     .from_("logs")
+        #     .update(update_data)
+        #     .eq("log_id", interaction_id)
+        #     .execute()
+        # )
+
+        logDao = LogDao()
+        update_response = logDao.update(update_data, interaction_id)
 
         if not update_response.data:
             raise HTTPException(status_code=500, detail="Failed to update log")
@@ -175,42 +188,50 @@ async def update_interactions(interaction_id: str, interaction: LogRequest, toke
 async def delete_interaction(interaction_id: str, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-
+        # print("hello")
         # First, get the interaction to check relationship_id
-        interaction_response = (
-            supabase
-            .from_("logs")
-            .select("relationship_id")
-            .eq("log_id", interaction_id)
-            .single()
-            .execute()
-        )
+        # interaction_response = (
+        #     supabase
+        #     .from_("logs")
+        #     .select("relationship_id")
+        #     .eq("log_id", interaction_id)
+        #     .single()
+        #     .execute()
+        # )
+
+        logDao = LogDao()
+        interaction_response = logDao.get_by_id(interaction_id)
 
         if not interaction_response.data:
             raise HTTPException(status_code=404, detail="Interaction not found")
 
         # Check if the relationship belongs to the user
-        relationship_response = (
-            supabase
-            .from_("relationships")
-            .select("relationship_id")
-            .eq("user_id", user_id)
-            .eq("relationship_id", interaction_response.data["relationship_id"])
-            .single()
-            .execute()
-        )
+        # relationship_response = (
+        #     supabase
+        #     .from_("relationships")
+        #     .select("relationship_id")
+        #     .eq("user_id", user_id)
+        #     .eq("relationship_id", interaction_response.data["relationship_id"])
+        #     .single()
+        #     .execute()
+        # )
+
+        relationDao = RelationDao()
+        relationship_response = relationDao.get_by_id(interaction_response.data["relationship_id"], user_id)
 
         if not relationship_response.data:
             raise HTTPException(status_code=403, detail="Unauthorized: Cannot delete this interaction")
 
         # Delete the interaction
-        delete_response = (
-            supabase
-            .from_("logs")
-            .delete()
-            .eq("log_id", interaction_id)
-            .execute()
-        )
+        delete_response = logDao.delete(interaction_id) 
+        # delete_response = (
+        #     supabase
+        #     .from_("logs")
+        #     .delete()
+        #     .eq("log_id", interaction_id)
+        #     .execute()
+        # )
+
 
         if not delete_response.data:
             raise HTTPException(status_code=500, detail="Failed to delete interaction")
@@ -225,32 +246,18 @@ async def delete_interaction(interaction_id: str, token: dict = Depends(verify_j
 async def get_interactions_by_relationship(relationship_id: str, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        
         # Check if the relationship belongs to the user
-        relationship_response = (
-            supabase
-            .from_("relationships")
-            .select("relationship_id")
-            .eq("user_id", user_id)
-            .eq("relationship_id", relationship_id)
-            .single()
-            .execute()
-        )
-        
+        relationDao = RelationDao()
+        relationship_response = relationDao.get_by_id(relationship_id, user_id)
+
         if not relationship_response.data:
             raise HTTPException(status_code=403, detail="Unauthorized: Relationship does not belong to user")
         
         # Get all interactions for the relationship
-        interactions_response = (
-            supabase
-            .from_("logs")
-            .select("*")
-            .eq("relationship_id", relationship_id)
-            .order("date", desc=True)
-            .execute()
-        )
-        
-        return interactions_response.data
+        logDao = LogDao()
+        data = logDao.get_by_relationship_id(relationship_id)
+
+        return data
         
     except Exception as e:
         print(f"Error fetching interactions: {str(e)}")

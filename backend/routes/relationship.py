@@ -9,9 +9,11 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
-from services.connect_db import supabase
+# from services.connect_db import supabase
 from services.embeddings import get_embeddings
 
+from dao.relationship_dao import RelationshipDAO
+from dao.log_dao import LogDAO
 from routes.auth import verify_jwt_token
 
 relationship_router = APIRouter()
@@ -69,7 +71,11 @@ class LogRequest(BaseModel):
 async def get_all_relationships(token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        response = supabase.table("relationships").select("*").eq("user_id", user_id).execute()
+        relationshipDao = RelationshipDAO()
+        response = relationshipDao.get_by_user_id(user_id)
+        # response = relationDao.get_by_user_id(user_id)
+        # print("yo hu ho he")
+        # response = supabase.table("relationships").select("*").eq("user_id", user_id).execute()
         if not response.data:
             return []
         return response.data
@@ -81,7 +87,9 @@ async def get_all_relationships(token: dict = Depends(verify_jwt_token)):
 async def get_relationship(relationship_id: str, token: str = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+        relationDao = RelationshipDAO() 
+        response = relationDao.get_by_id(relationship_id, user_id)
+        # response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Relationship not found")
         return response.data[0]
@@ -98,22 +106,26 @@ async def add_relationship(relationship: RelationshipRequest, token: dict = Depe
         user_id = token["user_id"]  # Extract user_id from the token payload
         new_relationship = relationship.dict()
         new_relationship["user_id"] = user_id
-        response = supabase.table("relationships").insert(new_relationship).execute()
-        print("Supabase response:", response, flush=True)  # Debug statement
-        return response.data[0]
+        relationshipDao = RelationshipDAO()
+        create_response = relationshipDao.create(new_relationship)
+        print("Supabase response:", create_response, flush=True)  # Debug statement
+        return  create_response.data[0]
     except Exception as e:
         print("Error in add_relationship:", e, flush=True)  # Debug statement
         raise HTTPException(status_code=500, detail="Failed to add relationship")
 
 # Update an existing relationship
 @relationship_router.put("/{relationship_id}", response_model=Relationship)
-async def update_relationship(relationship_id: str, updated_relationship: RelationshipRequest, token: dict = Depends(verify_jwt_token)):
+async def update_relationship(relationship_id: str, relationship: RelationshipRequest, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        response = supabase.table("relationships").update(updated_relationship.dict()).eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
-        if not response.data:
+        update_relationship = relationship.dict()
+        relationDao = RelationshipDAO()
+        updated_response = relationDao.update(update_relationship, relationship_id, user_id)
+        # response = supabase.table("relationships").update(update_relationship).eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+        if not updated_response.data:
             raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
-        return response.data[0]
+        return updated_response.data[0]
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to update relationship")
 
@@ -122,8 +134,10 @@ async def update_relationship(relationship_id: str, updated_relationship: Relati
 async def delete_relationship(relationship_id: str, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        response = supabase.table("relationships").delete().eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
-        if not response.data:
+        relationshipDao = RelationshipDAO()
+        deleted_response = relationshipDao.delete(relationship_id, user_id)
+        # response = supabase.table("relationships").delete().eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+        if not deleted_response.data:
             raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
         return {"message": "Relationship deleted successfully"}
     except Exception as e:
@@ -136,16 +150,19 @@ async def list_interactions(relationship_id: str, token: dict = Depends(verify_j
         user_id = token["user_id"]
         try: 
             # Check if the relationship exists and belongs to the user
-            relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+            relationshipDao = RelationshipDAO()
+            relationship_response = relationshipDao.get_by_id(relationship_id, user_id)
+            # relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
             if not relationship_response.data:
                 raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
         except Exception as e:
             raise HTTPException(status_code=500, detail="Failed to fetch relationship")
         
         # Fetch interactions for the relationship
-        response = supabase.table("logs").select("*").eq("relationship_id", relationship_id).execute()
-        # if not response.data:
-        #     raise HTTPException(status_code=404, detail="No interactions found")
+        # response = supabase.table("logs").select("*").eq("relationship_id", relationship_id).execute()
+        logDao = LogDAO()
+        response = logDao.get_by_relationship_id(relationship_id)
+
         return response.data
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to fetch interactions")
@@ -156,7 +173,9 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         user_id = token["user_id"]
 
         # Check if the relationship exists and belongs to the user
-        relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
+        relationshipDao = RelationshipDAO()
+        relationship_response = relationshipDao.get_by_id(relationship_id, user_id)
+        # relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not relationship_response.data:
             raise HTTPException(status_code=404, detail="Relationship not found or not authorized")
 
@@ -173,7 +192,9 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         }
 
         # Insert the log into the "logs" table
-        response = supabase.table("logs").insert(new_log).execute()
+        logDao = LogDAO()
+        response = logDao.create(new_log)
+        # response = supabase.table("logs").insert(new_log).execute()
         if not response.data:
             raise HTTPException(status_code=500, detail="Failed to add interaction")
 
