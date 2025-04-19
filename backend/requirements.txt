@@ -13,6 +13,7 @@ PyJWT>=2.3.0
 python-multipart>=0.0.5
 google-generativeai>=0.3.0
 sentence-transformers>=2.2.2
+slowapi>=0.1.2
 
 # Calendar specific requirements
 google-auth-oauthlib>=1.0.0
