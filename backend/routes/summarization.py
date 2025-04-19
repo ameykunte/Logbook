@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
 
-from services.gemini import summarize_text, summarize_file, summarize_daily_interactions
+from services.gemini import summarize_file, summarize_daily_interactions
+from services.SummarizeText import summarize_text
 from routes.auth import verify_jwt_token
 from pydantic import BaseModel
 
