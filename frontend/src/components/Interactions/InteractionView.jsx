@@ -214,6 +214,7 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
       setIsSummarizing(false);
     }
   };
+
   const summarizeFileWithGemini = async () => {
     if (!selectedFile) return;
     
@@ -222,6 +223,7 @@ const InteractionView = ({ relation, onClose, onUpdate }) => {
       const summaryResult = await summarizeFile(selectedFile);
       setSummary(summaryResult);
     } catch (err) {
+      // console.log("yepp");
       setError("Failed to summarize file. Please try again.");
       console.error("File summarization error:", err);
     } finally {
