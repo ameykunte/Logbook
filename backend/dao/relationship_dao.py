@@ -1,12 +1,12 @@
 # from typing import List, Optional
 from uuid import UUID
-
+from services.connect_db import supabase
 from models.Relationship import Relationship
 
 
 class RelationshipDAO:
-    def __init__(self, database):
-        self.database = database
+    def __init__(self):
+        self.database = supabase
 
     def get_by_id(self, relationship_id: UUID, user_id: UUID):
         """

@@ -9,7 +9,7 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
-from services.connect_db import supabase
+# from services.connect_db import supabase
 from services.embeddings import get_embeddings
 
 from dao.relationship_dao import RelationshipDAO
@@ -71,7 +71,7 @@ class LogRequest(BaseModel):
 async def get_all_relationships(token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        relationshipDao = RelationshipDAO(supabase)
+        relationshipDao = RelationshipDAO()
         response = relationshipDao.get_by_user_id(user_id)
         # response = relationDao.get_by_user_id(user_id)
         # print("yo hu ho he")
@@ -87,7 +87,7 @@ async def get_all_relationships(token: dict = Depends(verify_jwt_token)):
 async def get_relationship(relationship_id: str, token: str = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        relationDao = RelationshipDAO(supabase) 
+        relationDao = RelationshipDAO() 
         response = relationDao.get_by_id(relationship_id, user_id)
         # response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not response.data:
@@ -106,7 +106,7 @@ async def add_relationship(relationship: RelationshipRequest, token: dict = Depe
         user_id = token["user_id"]  # Extract user_id from the token payload
         new_relationship = relationship.dict()
         new_relationship["user_id"] = user_id
-        relationshipDao = RelationshipDAO(supabase)
+        relationshipDao = RelationshipDAO()
         create_response = relationshipDao.create(new_relationship)
         print("Supabase response:", create_response, flush=True)  # Debug statement
         return  create_response.data[0]
@@ -120,7 +120,7 @@ async def update_relationship(relationship_id: str, relationship: RelationshipRe
     try:
         user_id = token["user_id"]
         update_relationship = relationship.dict()
-        relationDao = RelationshipDAO(supabase)
+        relationDao = RelationshipDAO()
         updated_response = relationDao.update(update_relationship, relationship_id, user_id)
         # response = supabase.table("relationships").update(update_relationship).eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not updated_response.data:
@@ -134,7 +134,7 @@ async def update_relationship(relationship_id: str, relationship: RelationshipRe
 async def delete_relationship(relationship_id: str, token: dict = Depends(verify_jwt_token)):
     try:
         user_id = token["user_id"]
-        relationshipDao = RelationshipDAO(supabase)
+        relationshipDao = RelationshipDAO()
         deleted_response = relationshipDao.delete(relationship_id, user_id)
         # response = supabase.table("relationships").delete().eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not deleted_response.data:
@@ -150,7 +150,7 @@ async def list_interactions(relationship_id: str, token: dict = Depends(verify_j
         user_id = token["user_id"]
         try: 
             # Check if the relationship exists and belongs to the user
-            relationshipDao = RelationshipDAO(supabase)
+            relationshipDao = RelationshipDAO()
             relationship_response = relationshipDao.get_by_id(relationship_id, user_id)
             # relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
             if not relationship_response.data:
@@ -160,7 +160,7 @@ async def list_interactions(relationship_id: str, token: dict = Depends(verify_j
         
         # Fetch interactions for the relationship
         # response = supabase.table("logs").select("*").eq("relationship_id", relationship_id).execute()
-        logDao = LogDAO(supabase)
+        logDao = LogDAO()
         response = logDao.get_by_relationship_id(relationship_id)
 
         return response.data
@@ -173,7 +173,7 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         user_id = token["user_id"]
 
         # Check if the relationship exists and belongs to the user
-        relationshipDao = RelationshipDAO(supabase)
+        relationshipDao = RelationshipDAO()
         relationship_response = relationshipDao.get_by_id(relationship_id, user_id)
         # relationship_response = supabase.table("relationships").select("*").eq("relationship_id", relationship_id).eq("user_id", user_id).execute()
         if not relationship_response.data:
@@ -192,7 +192,7 @@ async def post_interaction(relationship_id: str, log_request: LogRequest, token:
         }
 
         # Insert the log into the "logs" table
-        logDao = LogDAO(supabase)
+        logDao = LogDAO()
         response = logDao.create(new_log)
         # response = supabase.table("logs").insert(new_log).execute()
         if not response.data:

@@ -9,7 +9,7 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
-from services.connect_db import supabase
+# from services.connect_db import supabase
 from services.embeddings import get_embeddings
 from services.gemini import summarize_text, summarize_file
 from routes.auth import verify_jwt_token
@@ -93,7 +93,7 @@ async def create_interaction(
         #     .execute()
         # )
 
-        relationDao = RelationDao(supabase)
+        relationDao = RelationDao()
         relationship_response = relationDao.get_by_id(relationship_id, user_id)
         
         if not relationship_response.data:
@@ -119,7 +119,7 @@ async def create_interaction(
         #     .execute()
         # )
 
-        logDao = LogDao(supabase)
+        logDao = LogDao()
         insert_response = logDao.insert(new_log)
         
         if not insert_response.data:
@@ -147,7 +147,7 @@ async def update_interactions(interaction_id: str, interaction: LogRequest, toke
         #     .execute()
         # )
 
-        relationDao = RelationDao(supabase)
+        relationDao = RelationDao()
         relationship_response = relationDao.get_by_id(interaction.relationship_id, user_id)
 
         if not relationship_response.data:
@@ -173,7 +173,7 @@ async def update_interactions(interaction_id: str, interaction: LogRequest, toke
         #     .execute()
         # )
 
-        logDao = LogDao(supabase)
+        logDao = LogDao()
         update_response = logDao.update(update_data, interaction_id)
 
         if not update_response.data:
@@ -200,7 +200,7 @@ async def delete_interaction(interaction_id: str, token: dict = Depends(verify_j
         #     .execute()
         # )
 
-        logDao = LogDao(supabase)
+        logDao = LogDao()
         interaction_response = logDao.get_by_id(interaction_id)
 
         if not interaction_response.data:
@@ -217,7 +217,7 @@ async def delete_interaction(interaction_id: str, token: dict = Depends(verify_j
         #     .execute()
         # )
 
-        relationDao = RelationDao(supabase)
+        relationDao = RelationDao()
         relationship_response = relationDao.get_by_id(interaction_response.data["relationship_id"], user_id)
 
         if not relationship_response.data:
@@ -248,14 +248,14 @@ async def get_interactions_by_relationship(relationship_id: str, token: dict = D
     try:
         user_id = token["user_id"]
         # Check if the relationship belongs to the user
-        relationDao = RelationDao(supabase)
+        relationDao = RelationDao()
         relationship_response = relationDao.get_by_id(relationship_id, user_id)
 
         if not relationship_response.data:
             raise HTTPException(status_code=403, detail="Unauthorized: Relationship does not belong to user")
         
         # Get all interactions for the relationship
-        logDao = LogDao(supabase)
+        logDao = LogDao()
         data = logDao.get_by_relationship_id(relationship_id)
 
         return data

@@ -1,13 +1,14 @@
 from typing import List, Optional
 from uuid import UUID
 from models.Log import Log
+from services.connect_db import supabase
 from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
 # from services.connect_db import supabase
 
 
 class LogDAO:
-    def __init__(self, database):
-        self.database = database
+    def __init__(self):
+        self.database = supabase
 
     def get_by_id(self, id):
         try:
