@@ -8,9 +8,31 @@ from routes.calendar import calendar_router
 from fastapi import FastAPI, Request, Depends
 from dotenv import load_dotenv
 import os
+import sys
+from contextlib import asynccontextmanager
+# Use the default handler or create a custom one if needed
+from slowapi.middleware import SlowAPIMiddleware 
 from dotenv import load_dotenv
 
 # from routes.search import search_router
+
+# --- Lifespan Management (Optional but good practice) ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup ---
+    print("API starting up...")
+    # Initialize database connections, models, etc. here if needed
+    yield
+    # --- Shutdown ---
+    print("API shutting down...")
+    # Cleanup resources here if needed
+
+# --- FastAPI App Initialization ---
+app = FastAPI(lifespan=lifespan)
+
+# --- Rate Limiter Setup ---
+# Add the SlowAPIMiddleware - this automatically handles adding state and the exception handler
+app.add_middleware(SlowAPIMiddleware)
 
 load_dotenv()
 app = FastAPI()
