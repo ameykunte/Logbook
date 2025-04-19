@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './components//Layout/LandingPage';
+import LandingPage from './components/Layout/LandingPage';
 import LoginPage from './components/Auth/LoginPage';
 import SignUpPage from './components/Auth/SignUpPage';
 import PrivateRoute from './components/Auth/PrivateRoute';
