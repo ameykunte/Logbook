@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException, Request, Depends, Header
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
-import datetime
 import bcrypt
 import jwt
 from datetime import datetime, timedelta
@@ -9,8 +8,10 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(os.getenv('HOME_PATH'))
+from dao.user_dao import UserDAO
 from services.google_calendar import GoogleCalendarService
-from services.connect_db import supabase
+from models.User import User, UserStatus
+from uuid import uuid4
 import json
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -20,6 +21,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION = 3600
 
 auth_router = APIRouter()
+user_dao = UserDAO()  # Initialize UserDAO
 
 # Request models
 class LoginRequest(BaseModel):
@@ -47,31 +49,29 @@ def create_jwt_token(user_id: str, email: str):
 @auth_router.post("/login")
 async def login(request: LoginRequest):
     try:
-        response = supabase.table("users").select("*").eq("email", request.email).execute()
+        user = user_dao.get_user_by_email(request.email)
         
-        if not response.data:
+        if not user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        user = response.data[0]
-        
-        if not bcrypt.checkpw(request.password.encode(), user["password_hash"].encode()):
+        if not bcrypt.checkpw(request.password.encode(), user.password_hash.encode()):
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        supabase.table("users").update({"last_login": datetime.now().isoformat()}).eq("user_id", user["user_id"]).execute()
+        user_dao.update_user_last_login(user.user_id)
         
-        access_token = create_jwt_token(user["user_id"], user["email"])
+        access_token = create_jwt_token(str(user.user_id), user.email)
         
         # Add Google Calendar auth URL
         calendar_service = GoogleCalendarService()
-        google_auth_url = calendar_service.get_auth_url(user["user_id"])
+        google_auth_url = calendar_service.get_auth_url(str(user.user_id))
         
         return {
             "message": "Login successful", 
             "access_token": access_token,
             "token_type": "bearer",
-            "user_id": user["user_id"],
-            "user_name": user["name"],
-            "google_auth_url": google_auth_url  # Add this
+            "user_id": str(user.user_id),
+            "user_name": user.name,
+            "google_auth_url": google_auth_url
         }
     
     except Exception as e:
@@ -80,9 +80,7 @@ async def login(request: LoginRequest):
 @auth_router.post("/signup")
 async def signup(request: SignUpRequest):
     try:
-        email_check = supabase.table("users").select("email").eq("email", request.email).execute()
-        
-        if email_check.data:
+        if user_dao.check_email_exists(request.email):
             raise HTTPException(status_code=400, detail="Email already registered")
         
         hashed_password = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
@@ -92,32 +90,26 @@ async def signup(request: SignUpRequest):
             "email": request.email,
             "password_hash": hashed_password,
             "last_login": datetime.now().isoformat(),
-            "status": "ACTIVE"
+            "status": UserStatus.ACTIVE.value
         }
         
-        response = supabase.table("users").insert(new_user).execute()
-        
-        if not response.data:
-            raise HTTPException(status_code=400, detail="Failed to create user")
-        
-        user_data = response.data[0]
-        access_token = create_jwt_token(user_data["user_id"], user_data["email"])
+        created_user = user_dao.create_user(new_user)
+        access_token = create_jwt_token(str(created_user.user_id), created_user.email)
         
         # Add Google Calendar auth URL
         calendar_service = GoogleCalendarService()
-        google_auth_url = calendar_service.get_auth_url(user_data["user_id"])
+        google_auth_url = calendar_service.get_auth_url(str(created_user.user_id))
         
         return {
             "message": "User created successfully", 
             "access_token": access_token,
             "token_type": "bearer",
-            "user_id": user_data["user_id"],
-            "email": user_data["email"],
-            "google_auth_url": google_auth_url  # Add this
+            "user_id": str(created_user.user_id),
+            "email": created_user.email,
+            "google_auth_url": google_auth_url
         }
     
     except Exception as e:
-        print("Error:", e)
         raise HTTPException(status_code=400, detail=str(e))
 
 def verify_jwt_token(authorization: str = Header(..., alias="Authorization")):
@@ -128,11 +120,9 @@ def verify_jwt_token(authorization: str = Header(..., alias="Authorization")):
         raise HTTPException(status_code=401, detail="Invalid Authorization header format")
     
     token = authorization.split(" ")[1]  # Extract the token after "Bearer"
-    print("Verifying token:", token, flush=True)  # Debug statement
     
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        print("Token payload:", payload, flush=True)  # Debug statement
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
